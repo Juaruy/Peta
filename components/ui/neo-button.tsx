@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Menu, MessageSquare, X } from "lucide-react";
+import { Menu, MessagesSquare, X, Logs } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type NeoButtonProps = {
@@ -70,7 +70,7 @@ const sizes = {
   },
 };
 
-const menuItems = ["Menu", "Work", "About", "Contact"];
+const menuItems = ["Work", "Studio", "Contact"];
 
 const colorVariants = {
   primary: {
@@ -109,6 +109,8 @@ export default function NeoButton({
   const [isOpen, setIsOpen] = useState(false);
 
   const isMenu = variant === "menu";
+
+  const buttonLabel = isMenu && isOpen ? "Close" : children;
 
   const currentSize = sizes[size];
 
@@ -205,7 +207,7 @@ export default function NeoButton({
             icon ? currentSize.textPadding : "px-6 py-4",
           )}
         >
-          {children}
+          {buttonLabel}
         </motion.span>
 
         {/* ICON */}
@@ -235,9 +237,9 @@ export default function NeoButton({
             ) : isMenu && isOpen ? (
               <X strokeWidth={2.2} className={currentSize.iconSize} />
             ) : isMenu ? (
-              <Menu strokeWidth={2.2} className={currentSize.iconSize} />
+              <Logs strokeWidth={2.2} className={currentSize.iconSize} />
             ) : (
-              <MessageSquare
+              <MessagesSquare
                 strokeWidth={2.2}
                 className={currentSize.iconSize}
               />

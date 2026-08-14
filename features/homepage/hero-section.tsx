@@ -1,9 +1,9 @@
 "use client";
 
-import BlurText from "@/components/animation/BlurText";
-import Ribbons from "@/components/animation/Ribbons";
+import BlurText from "@/components/animations/BlurText";
+import Ribbons from "@/components/animations/Ribbons";
 import Navbar from "@/components/layout/navbar";
-import SplitText from "@/components/animation/SplitText";
+import SplitText from "@/components/animations/SplitText";
 
 const handleAnimationComplete = () => {
   console.log("Animation completed!");
@@ -12,18 +12,6 @@ const handleAnimationComplete = () => {
 export default function HeroSection() {
   return (
     <section className="relative h-screen w-full overflow-hidden bg-black text-white">
-      {/* Ribbons FX */}
-      <div className="absolute inset-0 z-10">
-        <Ribbons
-          baseThickness={30}
-          colors={["#E5E5E5"]}
-          speedMultiplier={0.5}
-          maxAge={500}
-          enableFade={false}
-          enableShaderEffect={false}
-        />
-      </div>
-
       {/* Navbar */}
       <div className="absolute top-0 left-0 z-50 w-full">
         <Navbar />
