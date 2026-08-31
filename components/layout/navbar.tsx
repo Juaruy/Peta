@@ -1,26 +1,61 @@
 "use client";
 
 import { useEffect, useState } from "react";
+
 import Image from "next/image";
+
 import Link from "next/link";
+
 import NeoButton from "@/components/ui/neo-button";
 
+import MusicPlayer from "../ui/MusicPlayer";
+
 export default function Navbar() {
-  const [isScrolled, setIsScrolled] = useState(false);
+  const [isContactVisible, setIsContactVisible] = useState(false);
+  const [isHeroVisible, setIsHeroVisible] = useState(true);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
-    };
+    const contact = document.getElementById("contact");
+    const hero = document.getElementById("hero");
 
-    handleScroll();
+    const observers: IntersectionObserver[] = [];
 
-    window.addEventListener("scroll", handleScroll);
+    if (contact) {
+      const contactObserver = new IntersectionObserver(
+        ([entry]) => {
+          setIsContactVisible(entry.isIntersecting);
+        },
+        {
+          threshold: 0.1,
+        },
+      );
+
+      contactObserver.observe(contact);
+      observers.push(contactObserver);
+    }
+
+    if (hero) {
+      const heroObserver = new IntersectionObserver(
+        ([entry]) => {
+          setIsHeroVisible(entry.isIntersecting);
+        },
+        {
+          threshold: 0.1,
+        },
+      );
+
+      heroObserver.observe(hero);
+      observers.push(heroObserver);
+    }
 
     return () => {
-      window.removeEventListener("scroll", handleScroll);
+      observers.forEach((observer) => {
+        observer.disconnect();
+      });
     };
   }, []);
+
+  const showLogo = isHeroVisible || isContactVisible;
 
   return (
     /* OUTER WRAPPER */
@@ -57,24 +92,28 @@ export default function Navbar() {
             transition-all
             duration-500
             ease-out
-
             md:h-12
             md:w-[170px]
-
             ${
-              isScrolled
-                ? "pointer-events-none -translate-y-4 opacity-0"
-                : "translate-y-0 opacity-100"
+              showLogo
+                ? "pointer-events-auto translate-y-0 opacity-100"
+                : "pointer-events-none -translate-y-4 opacity-0"
             }
           `}
         >
-          <Link href="/" aria-label="Home">
+          <Link href="#hero" aria-label="Home">
             <Image
               src="/LogoPeta.svg"
               alt="Logo"
               fill
               priority
-              className="object-contain object-left"
+              className={`
+                object-contain
+                object-left
+                transition-all
+                duration-300
+                ${isContactVisible ? "invert" : ""}
+              `}
             />
           </Link>
         </div>
@@ -88,6 +127,8 @@ export default function Navbar() {
             gap-2
           "
         >
+          <MusicPlayer />
+
           <NeoButton
             variant="global"
             color="secondary"

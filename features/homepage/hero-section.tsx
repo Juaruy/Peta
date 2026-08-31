@@ -1,9 +1,6 @@
 "use client";
 
 import BlurText from "@/components/animations/BlurText";
-import Ribbons from "@/components/animations/Ribbons";
-import Navbar from "@/components/layout/navbar";
-import SplitText from "@/components/animations/SplitText";
 
 const handleAnimationComplete = () => {
   console.log("Animation completed!");
@@ -11,16 +8,14 @@ const handleAnimationComplete = () => {
 
 export default function HeroSection() {
   return (
-    <section className="relative h-screen w-full overflow-hidden bg-black text-white">
-      {/* Navbar */}
-      <div className="absolute top-0 left-0 z-50 w-full">
-        <Navbar />
-      </div>
-
+    <section
+      id="hero"
+      className="relative h-screen w-full overflow-hidden bg-black text-white"
+    >
       {/* Hero Content */}
       <div className="relative z-20 flex h-full flex-col items-center justify-center px-6 text-center pointer-events-none">
         <BlurText
-          text="Looking for Peta?!"
+          text="Hello World!!!"
           delay={200}
           animateBy="words"
           direction="top"
@@ -33,7 +28,7 @@ export default function HeroSection() {
             delay={400}
             animateBy="words"
             direction="top"
-            className="text-lg text-neutral-300"
+            className="text-lg"
             onAnimationComplete={handleAnimationComplete}
           />
         </div>
