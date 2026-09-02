@@ -10,7 +10,6 @@ import {
 import { useRouter } from "next/navigation";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import Lenis from "lenis";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -205,41 +204,6 @@ export default function StackedScroll({
     if (!root) return;
 
     // ------------------------------------------------------------------------
-    // LENIS
-    // ------------------------------------------------------------------------
-
-    const lenis = new Lenis({
-      duration: 1.35,
-      easing: (t: number) => 1 - Math.pow(1 - t, 4),
-      smoothWheel: true,
-      wheelMultiplier: 0.85,
-      touchMultiplier: 1.5,
-      syncTouch: false,
-      autoRaf: false,
-    });
-
-    // ------------------------------------------------------------------------
-    // LENIS → SCROLLTRIGGER
-    // ------------------------------------------------------------------------
-
-    const handleLenisScroll = () => {
-      ScrollTrigger.update();
-    };
-
-    lenis.on("scroll", handleLenisScroll);
-
-    // ------------------------------------------------------------------------
-    // GSAP RAF
-    // ------------------------------------------------------------------------
-
-    const raf = (time: number) => {
-      lenis.raf(time * 1000);
-    };
-
-    gsap.ticker.add(raf);
-    gsap.ticker.lagSmoothing(0);
-
-    // ------------------------------------------------------------------------
     // GSAP CONTEXT
     // ------------------------------------------------------------------------
 
@@ -413,15 +377,14 @@ export default function StackedScroll({
 
     // ------------------------------------------------------------------------
     // CLEANUP
+    //
+    // Lifecycle Lenis (create/sync/raf/destroy) kini dikelola di
+    // `LenisProvider` (lib/lenis-context.tsx), jadi di sini hanya perlu
+    // membatalkan konteks GSAP milik komponen ini.
     // ------------------------------------------------------------------------
 
     return () => {
       ctx.revert();
-
-      lenis.off("scroll", handleLenisScroll);
-      lenis.destroy();
-
-      gsap.ticker.remove(raf);
     };
   }, []);
 

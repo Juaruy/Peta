@@ -42,7 +42,7 @@ export default function WorkSection() {
           <ScrollReveal>
             <div className="grid w-full grid-cols-1 items-center gap-8 lg:grid-cols-[1.5fr_1fr] lg:gap-16">
               <div className="flex w-full justify-start">
-                <h2 className="whitespace-nowrap font-aeonik text-5xl font-medium leading-[1.05] tracking-[-0.04em] md:text-6xl lg:text-8xl">
+                <h2 className="whitespace-nowrap font-aeonik text-5xl font-medium leading-[1.05] tracking-[-0.04em] md:text-6xl lg:text-7xl">
                   Selected Work
                 </h2>
               </div>

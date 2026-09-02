@@ -5,6 +5,7 @@ import { useLayoutEffect, useRef } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import NeoButton from "@/components/ui/neo-button";
+import { useLenis } from "@/lib/lenis-context";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -16,11 +17,28 @@ export default function LetsCollaborate() {
   const lineRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
+  // Instance Lenis diambil dari provider global (LenisProvider di app/layout).
+  // Dipakai supaya "GO UP" memakai smooth-scroll yang SAMA dengan scroll mouse
+  // (bukan native window.scrollTo yang berbenturan dengan engine Lenis).
+  // Bisa `null` di awal mount → kita guard di scrollToTop.
+  const lenis = useLenis();
+
   /* ================================================================
      BACK TO TOP
      ================================================================= */
 
   const scrollToTop = () => {
+    if (lenis) {
+      // Pakai Lenis: animasi halus ke atas yang konsisten dengan smooth-scroll.
+      lenis.scrollTo(0, {
+        duration: 1.8,
+        // easing sama dengan config Lenis (easeOut quart) biar terasa konsisten.
+        easing: (t: number) => 1 - Math.pow(1 - t, 4),
+      });
+      return;
+    }
+
+    // Fallback kalau Lenis belum siap (mis. sangat awal saat mount).
     window.scrollTo({
       top: 0,
       behavior: "smooth",

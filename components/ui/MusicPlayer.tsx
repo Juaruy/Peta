@@ -15,7 +15,8 @@ import { IonIcon } from "@ionic/react";
 import {
   batteryFull,
   cellular,
-  chatboxEllipsesOutline,
+  musicalNoteOutline,
+  ellipsisVertical,
   headsetOutline,
   listOutline,
   pause,
@@ -25,6 +26,9 @@ import {
   repeat,
   remove,
   search,
+  volumeHigh,
+  volumeLow,
+  volumeMute,
 } from "ionicons/icons";
 
 import {
@@ -65,6 +69,7 @@ type YouTubePlayer = {
   getCurrentTime: () => number;
   getDuration: () => number;
   seekTo: (seconds: number, allowSeekAhead: boolean) => void;
+  setVolume: (volume: number) => void;
   destroy: () => void;
 };
 
@@ -687,6 +692,10 @@ function extractArtworkColor(imageUrl: string): Promise<string> {
 export default function MusicPlayer() {
   const [isOpen, setIsOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isQueueOpen, setIsQueueOpen] = useState(false);
+  const [openQueueMenu, setOpenQueueMenu] = useState<string | null>(null);
+  const [draggingQueueId, setDraggingQueueId] = useState<string | null>(null);
+  const [dragOverQueueId, setDragOverQueueId] = useState<string | null>(null);
 
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -696,6 +705,9 @@ export default function MusicPlayer() {
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isRepeat, setIsRepeat] = useState(false);
+
+  const [volume, setVolume] = useState(70);
+  const [previousVolume, setPreviousVolume] = useState(70);
 
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [queue, setQueue] = useState<SearchResult[]>([]);
@@ -739,6 +751,7 @@ export default function MusicPlayer() {
   const currentSongRef = useRef<SearchResult | null>(null);
 
   const isRepeatRef = useRef(false);
+  const volumeRef = useRef(70);
 
   // ========================================================================
   // SYNC REFS
@@ -968,6 +981,9 @@ export default function MusicPlayer() {
             if (cancelled) {
               return;
             }
+
+            // Apply current volume as soon as the YouTube player is ready.
+            playerRef.current?.setVolume(volumeRef.current);
 
             if (pendingVideoIdRef.current) {
               const videoId = pendingVideoIdRef.current;
@@ -1219,6 +1235,93 @@ export default function MusicPlayer() {
   };
 
   // ========================================================================
+  // QUEUE
+  // ========================================================================
+
+  const addToQueue = (song: SearchResult) => {
+    setQueue((prev) => {
+      if (prev.some((item) => item.videoId === song.videoId)) {
+        return prev;
+      }
+
+      const nextQueue = [...prev, song];
+
+      queueRef.current = nextQueue;
+
+      return nextQueue;
+    });
+
+    setOpenQueueMenu(null);
+    resetFadeTimer();
+  };
+
+  const removeFromQueue = (absoluteIndex: number) => {
+    setQueue((prev) => {
+      if (absoluteIndex < 0 || absoluteIndex >= prev.length) {
+        return prev;
+      }
+
+      const nextQueue = prev.filter((_, index) => index !== absoluteIndex);
+
+      queueRef.current = nextQueue;
+
+      return nextQueue;
+    });
+
+    setOpenQueueMenu(null);
+    resetFadeTimer();
+  };
+
+  const reorderQueue = (draggedVideoId: string, targetVideoId: string) => {
+    if (draggedVideoId === targetVideoId) {
+      return;
+    }
+
+    setQueue((prev) => {
+      const fromIndex = prev.findIndex(
+        (item) => item.videoId === draggedVideoId,
+      );
+      const toIndex = prev.findIndex((item) => item.videoId === targetVideoId);
+
+      if (fromIndex === -1 || toIndex === -1) {
+        return prev;
+      }
+
+      // Only reorder songs in "Up Next".
+      if (
+        fromIndex <= currentIndexRef.current ||
+        toIndex <= currentIndexRef.current
+      ) {
+        return prev;
+      }
+
+      const nextQueue = [...prev];
+      const [movedSong] = nextQueue.splice(fromIndex, 1);
+      nextQueue.splice(toIndex, 0, movedSong);
+
+      queueRef.current = nextQueue;
+      return nextQueue;
+    });
+
+    setDraggingQueueId(null);
+    setDragOverQueueId(null);
+    setOpenQueueMenu(null);
+    resetFadeTimer();
+  };
+
+  const openQueueScreen = () => {
+    setIsQueueOpen(true);
+    setIsSearchOpen(false);
+    setOpenQueueMenu(null);
+    resetFadeTimer();
+  };
+
+  const closeQueueScreen = () => {
+    setIsQueueOpen(false);
+    setOpenQueueMenu(null);
+  };
+
+  // ========================================================================
   // PLAY SEARCH RESULT
   // ========================================================================
 
@@ -1228,6 +1331,7 @@ export default function MusicPlayer() {
     playSong(song, index, results);
 
     setIsSearchOpen(false);
+    setIsQueueOpen(false);
   };
 
   // ========================================================================
@@ -1335,6 +1439,44 @@ export default function MusicPlayer() {
   };
 
   // ========================================================================
+  // VOLUME
+  // ========================================================================
+
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newVolume = Number(e.target.value);
+
+    if (newVolume > 0) {
+      setPreviousVolume(newVolume);
+    }
+
+    volumeRef.current = newVolume;
+    setVolume(newVolume);
+
+    playerRef.current?.setVolume(newVolume);
+
+    resetFadeTimer();
+  };
+
+  const toggleMute = () => {
+    if (volume === 0) {
+      const restoreVolume = previousVolume > 0 ? previousVolume : 70;
+
+      volumeRef.current = restoreVolume;
+      setVolume(restoreVolume);
+
+      playerRef.current?.setVolume(restoreVolume);
+    } else {
+      setPreviousVolume(volume);
+
+      volumeRef.current = 0;
+      setVolume(0);
+
+      playerRef.current?.setVolume(0);
+    }
+
+    resetFadeTimer();
+  };
+  // ========================================================================
   // OPEN PLAYER
   // ========================================================================
 
@@ -1342,6 +1484,7 @@ export default function MusicPlayer() {
     setIsPlayerVisible(true);
     setIsOpen(true);
     setIsSearchOpen(false);
+    setIsQueueOpen(false);
 
     resetFadeTimer();
   };
@@ -1353,6 +1496,8 @@ export default function MusicPlayer() {
   const closeModal = () => {
     setIsOpen(false);
     setIsSearchOpen(false);
+    setIsQueueOpen(false);
+    setOpenQueueMenu(null);
 
     setQuery("");
     setResults([]);
@@ -1376,6 +1521,7 @@ export default function MusicPlayer() {
 
   const openSearchScreen = () => {
     setIsSearchOpen(true);
+    setIsQueueOpen(false);
     setQuery("");
     setResults([]);
     setLoading(false);
@@ -1687,7 +1833,7 @@ export default function MusicPlayer() {
                       NOW PLAYING
                   ============================================================= */}
 
-                  {!isSearchOpen && (
+                  {!isSearchOpen && !isQueueOpen && (
                     <motion.div
                       key="player-screen"
                       className="relative h-full w-full overflow-hidden"
@@ -1896,6 +2042,16 @@ export default function MusicPlayer() {
                                   }
                                 `}
                               >
+                                <p
+                                  className={
+                                    artworkIsLight
+                                      ? "mb-1 text-[9px] font-medium uppercase tracking-[0.14em] text-black/40"
+                                      : "mb-1 text-[9px] font-medium uppercase tracking-[0.14em] text-white/45"
+                                  }
+                                >
+                                  Now Playing
+                                </p>
+
                                 <RunningTitle
                                   title={currentSong.title}
                                   isLight={artworkIsLight}
@@ -2077,32 +2233,209 @@ export default function MusicPlayer() {
 
                               <div
                                 className={`
-                                  mt-2
-                                  flex
-                                  items-center
-                                  justify-between
-                                  text-[10px]
-                                  ${
-                                    artworkIsLight
-                                      ? "text-black/45"
-                                      : "text-white/55"
-                                  }
-                                `}
+    mt-2
+    flex
+    items-center
+    justify-between
+    text-[10px]
+    ${artworkIsLight ? "text-black/45" : "text-white/55"}
+  `}
                               >
                                 <span className="truncate">
                                   Playing on this device
                                 </span>
 
-                                <div className="flex items-center gap-3">
-                                  <IonIcon
-                                    icon={chatboxEllipsesOutline}
-                                    className="h-[13px] w-[13px]"
-                                  />
+                                <div className="flex items-center gap-1">
+                                  {/* ================================================================
+    VOLUME
+================================================================ */}
 
-                                  <IonIcon
-                                    icon={listOutline}
-                                    className="h-[13px] w-[13px]"
-                                  />
+                                  <div className="flex items-center gap-1.5">
+                                    {/* SPEAKER / MUTE */}
+
+                                    <button
+                                      type="button"
+                                      onClick={toggleMute}
+                                      aria-label={
+                                        volume === 0 ? "Unmute" : "Mute"
+                                      }
+                                      className={`
+      flex
+      h-5
+      w-5
+      shrink-0
+      cursor-pointer
+      items-center
+      justify-center
+      rounded-full
+      transition-colors
+      ${
+        artworkIsLight
+          ? "text-black/45 hover:text-black"
+          : "text-white/55 hover:text-white"
+      }
+    `}
+                                    >
+                                      <IonIcon
+                                        icon={
+                                          volume === 0
+                                            ? volumeMute
+                                            : volume < 50
+                                              ? volumeLow
+                                              : volumeHigh
+                                        }
+                                        className="h-[13px] w-[13px]"
+                                      />
+                                    </button>
+
+                                    {/* SPOTIFY-LIKE VOLUME BAR */}
+
+                                    <div
+                                      className="group relative flex h-4 w-[58px] cursor-pointer items-center"
+                                      onClick={(e) => {
+                                        const rect =
+                                          e.currentTarget.getBoundingClientRect();
+
+                                        const clickPosition =
+                                          e.clientX - rect.left;
+                                        const newVolume = Math.round(
+                                          Math.min(
+                                            Math.max(
+                                              clickPosition / rect.width,
+                                              0,
+                                            ),
+                                            1,
+                                          ) * 100,
+                                        );
+
+                                        if (newVolume > 0) {
+                                          setPreviousVolume(newVolume);
+                                        }
+
+                                        volumeRef.current = newVolume;
+                                        setVolume(newVolume);
+
+                                        playerRef.current?.setVolume(newVolume);
+
+                                        resetFadeTimer();
+                                      }}
+                                      onPointerDown={(e) => {
+                                        e.currentTarget.setPointerCapture(
+                                          e.pointerId,
+                                        );
+                                      }}
+                                      onPointerMove={(e) => {
+                                        if (e.buttons !== 1) return;
+
+                                        const rect =
+                                          e.currentTarget.getBoundingClientRect();
+
+                                        const position = e.clientX - rect.left;
+                                        const newVolume = Math.round(
+                                          Math.min(
+                                            Math.max(position / rect.width, 0),
+                                            1,
+                                          ) * 100,
+                                        );
+
+                                        if (newVolume > 0) {
+                                          setPreviousVolume(newVolume);
+                                        }
+
+                                        volumeRef.current = newVolume;
+                                        setVolume(newVolume);
+
+                                        playerRef.current?.setVolume(newVolume);
+
+                                        resetFadeTimer();
+                                      }}
+                                    >
+                                      {/* TRACK */}
+
+                                      <div
+                                        className={`
+        absolute
+        left-0
+        top-1/2
+        h-[3px]
+        w-full
+        -translate-y-1/2
+        overflow-hidden
+        rounded-full
+        ${artworkIsLight ? "bg-black/15" : "bg-white/20"}
+      `}
+                                      >
+                                        {/* FILLED */}
+
+                                        <div
+                                          className={`
+          h-full
+          rounded-full
+          ${artworkIsLight ? "bg-black/60" : "bg-white/70"}
+        `}
+                                          style={{
+                                            width: `${volume}%`,
+                                          }}
+                                        />
+                                      </div>
+
+                                      {/* SMALL SPOTIFY-STYLE KNOB */}
+
+                                      <div
+                                        className={`
+        pointer-events-none
+        absolute
+        top-1/2
+        h-[6px]
+        w-[6px]
+        -translate-x-1/2
+        -translate-y-1/2
+        scale-0
+        rounded-full
+        opacity-0
+        shadow-[0_0_2px_rgba(0,0,0,0.15)]
+        transition-[transform,opacity]
+        duration-100
+        group-hover:scale-100
+        group-hover:opacity-100
+        ${artworkIsLight ? "bg-black" : "bg-white"}
+      `}
+                                        style={{
+                                          left: `${volume}%`,
+                                        }}
+                                      />
+                                    </div>
+                                  </div>
+
+                                  {/* ================================================================
+        QUEUE
+    ================================================================ */}
+
+                                  <button
+                                    type="button"
+                                    onClick={openQueueScreen}
+                                    aria-label="Open queue"
+                                    className={`
+        flex
+        h-5
+        w-5
+        cursor-pointer
+        items-center
+        justify-center
+        rounded-full
+        transition-colors
+        ${
+          artworkIsLight
+            ? "text-black/45 hover:text-black"
+            : "text-white/55 hover:text-white"
+        }
+      `}
+                                  >
+                                    <IonIcon
+                                      icon={listOutline}
+                                      className="h-[13px] w-[13px]"
+                                    />
+                                  </button>
                                 </div>
                               </div>
                             </div>
@@ -2292,29 +2625,399 @@ export default function MusicPlayer() {
                         {!loading && results.length > 0 && (
                           <div className="space-y-0.5 pb-1">
                             {results.map((result) => (
-                              <button
+                              <div
                                 key={result.videoId}
-                                type="button"
-                                onClick={() => handlePlaySong(result)}
-                                className="flex w-full cursor-pointer items-center gap-2.5 rounded-[9px] p-1.5 text-left transition-colors hover:bg-black/[0.05]"
+                                className="relative flex w-full items-center gap-1 rounded-[9px] p-1.5 transition-colors hover:bg-black/[0.05]"
                               >
-                                <img
-                                  src={result.thumbnail}
-                                  alt=""
-                                  className="h-9 w-12 shrink-0 rounded-[6px] object-cover"
-                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handlePlaySong(result)}
+                                  className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 text-left"
+                                >
+                                  <img
+                                    src={result.thumbnail}
+                                    alt=""
+                                    className="h-9 w-12 shrink-0 rounded-[6px] object-cover"
+                                  />
 
-                                <div className="min-w-0">
-                                  <p className="truncate text-[11px] font-medium">
-                                    {result.title}
-                                  </p>
+                                  <div className="min-w-0">
+                                    <p className="truncate text-[11px] font-medium">
+                                      {result.title}
+                                    </p>
 
-                                  <p className="mt-0.5 truncate text-[9px] text-black/40">
-                                    {result.channelTitle}
-                                  </p>
+                                    <p className="mt-0.5 truncate text-[9px] text-black/40">
+                                      {result.channelTitle}
+                                    </p>
+                                  </div>
+                                </button>
+
+                                <div className="relative shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setOpenQueueMenu((prev) =>
+                                        prev === result.videoId
+                                          ? null
+                                          : result.videoId,
+                                      );
+                                    }}
+                                    aria-label={`More actions for ${result.title}`}
+                                    className="flex h-8 w-7 cursor-pointer items-center justify-center rounded-full text-black/35 transition-colors hover:bg-black/[0.06] hover:text-black/70"
+                                  >
+                                    <IonIcon
+                                      icon={ellipsisVertical}
+                                      className="h-[15px] w-[15px]"
+                                    />
+                                  </button>
+
+                                  {openQueueMenu === result.videoId && (
+                                    <div
+                                      className="
+      absolute
+      right-0
+      top-[34px]
+      z-30
+      w-[112px]
+      overflow-hidden
+      rounded-[9px]
+      border
+      border-black/10
+      bg-[#ececeb]
+      p-1
+      shadow-[0_8px_24px_rgba(0,0,0,0.14)]
+    "
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      {queue.some(
+                                        (item) =>
+                                          item.videoId === result.videoId,
+                                      ) ? (
+                                        <>
+                                          {/* IN QUEUE */}
+
+                                          <div
+                                            className="
+            w-full
+            rounded-[7px]
+            px-2.5
+            py-2
+            text-left
+            text-[10px]
+            font-medium
+            text-black/35
+          "
+                                          >
+                                            In Queue
+                                          </div>
+
+                                          {/* REMOVE */}
+
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const absoluteIndex =
+                                                queue.findIndex(
+                                                  (item) =>
+                                                    item.videoId ===
+                                                    result.videoId,
+                                                );
+
+                                              if (absoluteIndex !== -1) {
+                                                removeFromQueue(absoluteIndex);
+                                              }
+                                            }}
+                                            className="
+            w-full
+            cursor-pointer
+            rounded-[7px]
+            px-2.5
+            py-2
+            text-left
+            text-[10px]
+            font-medium
+            text-black/70
+            transition-colors
+            hover:bg-red-500
+            hover:text-white
+          "
+                                          >
+                                            Remove
+                                          </button>
+                                        </>
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          onClick={() => addToQueue(result)}
+                                          className="
+          w-full
+          cursor-pointer
+          rounded-[7px]
+          px-2.5
+          py-2
+          text-left
+          text-[10px]
+          font-medium
+          text-black/70
+          transition-colors
+          hover:bg-black/[0.06]
+          hover:text-black
+        "
+                                        >
+                                          Add to Queue
+                                        </button>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
-                              </button>
+                              </div>
                             ))}
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* =============================================================
+                      QUEUE SCREEN
+                  ============================================================= */}
+
+                  {isQueueOpen && (
+                    <motion.div
+                      key="queue-screen"
+                      className="
+                        flex
+                        h-full
+                        min-h-0
+                        flex-col
+                        bg-[#f4f4f1]
+                        p-4
+                        text-black
+                      "
+                      initial={{
+                        opacity: 0,
+                        x: 8,
+                      }}
+                      animate={{
+                        opacity: 1,
+                        x: 0,
+                      }}
+                      exit={{
+                        opacity: 0,
+                        x: 8,
+                      }}
+                      transition={{
+                        duration: 0.18,
+                      }}
+                    >
+                      {/* STATUS BAR */}
+
+                      <div className="flex shrink-0 items-center justify-between border-b border-black/10 pb-2 pt-[1px] text-[10px] font-medium text-black/50">
+                        <div className="flex items-center gap-1.5">
+                          <span>{currentClock}</span>
+
+                          <span className="text-black/30">Music</span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 text-[9px]">
+                          <IonIcon
+                            icon={cellular}
+                            className="h-[13px] w-[13px] text-black/55"
+                          />
+
+                          <span>5G</span>
+
+                          <IonIcon
+                            icon={batteryFull}
+                            className="h-[16px] w-[16px] text-black/55"
+                          />
+                        </div>
+                      </div>
+
+                      {/* QUEUE HEADER */}
+
+                      <div className="mt-3 flex shrink-0 items-center justify-between">
+                        <div>
+                          <p className="text-[9px] font-medium uppercase tracking-[0.14em] text-black/35">
+                            Up Next
+                          </p>
+                          <h2 className="mt-0.5 text-[16px] font-semibold">
+                            Queue
+                          </h2>
+                        </div>
+
+                        {queue.length > 0 && (
+                          <span className="text-[9px] text-black/35">
+                            {Math.max(queue.length - currentIndex - 1, 0)} songs
+                          </span>
+                        )}
+                      </div>
+
+                      {/* QUEUE LIST */}
+
+                      <div
+                        className="mt-2.5 min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-width:thin]"
+                        onWheel={(e) => {
+                          e.stopPropagation();
+                        }}
+                      >
+                        {queue.length === 0 ||
+                        currentIndex >= queue.length - 1 ? (
+                          <div className="flex h-full flex-col items-center justify-center px-8 text-center">
+                            <IonIcon
+                              icon={listOutline}
+                              className="mb-2 h-[18px] w-[18px] text-black/20"
+                            />
+
+                            <p className="text-[12px] font-medium text-black/45">
+                              Queue is empty
+                            </p>
+
+                            <p className="mt-1 max-w-[210px] text-[10px] leading-relaxed text-black/30">
+                              Add songs from search using the three-dot menu.
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="space-y-0.5 pb-1">
+                            {queue
+                              .slice(currentIndex + 1)
+                              .map((song, offset) => {
+                                const absoluteIndex = currentIndex + 1 + offset;
+
+                                return (
+                                  <div
+                                    key={song.videoId}
+                                    draggable
+                                    onDragStart={(e) => {
+                                      e.dataTransfer.effectAllowed = "move";
+                                      e.dataTransfer.setData(
+                                        "text/plain",
+                                        song.videoId,
+                                      );
+                                      setDraggingQueueId(song.videoId);
+                                      setDragOverQueueId(null);
+                                      setOpenQueueMenu(null);
+                                    }}
+                                    onDragOver={(e) => {
+                                      e.preventDefault();
+                                      e.dataTransfer.dropEffect = "move";
+
+                                      if (
+                                        draggingQueueId &&
+                                        draggingQueueId !== song.videoId
+                                      ) {
+                                        setDragOverQueueId(song.videoId);
+                                      }
+                                    }}
+                                    onDrop={(e) => {
+                                      e.preventDefault();
+
+                                      const draggedVideoId =
+                                        e.dataTransfer.getData("text/plain") ||
+                                        draggingQueueId;
+
+                                      if (draggedVideoId) {
+                                        reorderQueue(
+                                          draggedVideoId,
+                                          song.videoId,
+                                        );
+                                      }
+                                    }}
+                                    onDragEnd={() => {
+                                      setDraggingQueueId(null);
+                                      setDragOverQueueId(null);
+                                    }}
+                                    className={`relative flex w-full items-center gap-2 rounded-[9px] p-1.5 transition-[background-color,opacity] ${
+                                      draggingQueueId === song.videoId
+                                        ? "opacity-40"
+                                        : ""
+                                    } ${
+                                      dragOverQueueId === song.videoId
+                                        ? "bg-black/[0.08]"
+                                        : "hover:bg-black/[0.05]"
+                                    }`}
+                                  >
+                                    {/* DRAG HANDLE */}
+
+                                    <div
+                                      aria-hidden="true"
+                                      className="flex w-3 shrink-0 cursor-grab items-center justify-center text-black/20 active:cursor-grabbing"
+                                    >
+                                      <span className="flex flex-col gap-[2px]">
+                                        <span className="h-[2px] w-[2px] rounded-full bg-current" />
+                                        <span className="h-[2px] w-[2px] rounded-full bg-current" />
+                                        <span className="h-[2px] w-[2px] rounded-full bg-current" />
+                                      </span>
+                                    </div>
+
+                                    <button
+                                      type="button"
+                                      draggable={false}
+                                      onClick={() => {
+                                        playSong(song, absoluteIndex);
+                                        closeQueueScreen();
+                                      }}
+                                      className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 text-left"
+                                    >
+                                      <img
+                                        src={song.thumbnail}
+                                        alt=""
+                                        className="h-9 w-12 shrink-0 rounded-[6px] object-cover"
+                                      />
+
+                                      <div className="min-w-0">
+                                        <p className="truncate text-[11px] font-medium">
+                                          {song.title}
+                                        </p>
+
+                                        <p className="mt-0.5 truncate text-[9px] text-black/40">
+                                          {song.channelTitle}
+                                        </p>
+                                      </div>
+                                    </button>
+
+                                    <div className="relative shrink-0">
+                                      <button
+                                        type="button"
+                                        draggable={false}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setOpenQueueMenu((prev) =>
+                                            prev === song.videoId
+                                              ? null
+                                              : song.videoId,
+                                          );
+                                        }}
+                                        aria-label={`Queue actions for ${song.title}`}
+                                        className="flex h-8 w-7 cursor-pointer items-center justify-center rounded-full text-black/35 transition-colors hover:bg-black/[0.06] hover:text-black/70"
+                                      >
+                                        <IonIcon
+                                          icon={ellipsisVertical}
+                                          className="h-[15px] w-[15px]"
+                                        />
+                                      </button>
+
+                                      {openQueueMenu === song.videoId && (
+                                        <div
+                                          className="absolute right-0 top-[34px] z-30 w-[88px] overflow-hidden rounded-[9px] border border-black/10 bg-[#ececeb] p-1 shadow-[0_8px_24px_rgba(0,0,0,0.14)]"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              removeFromQueue(absoluteIndex)
+                                            }
+                                            className="w-full cursor-pointer rounded-[7px] px-2.5 py-2 text-left text-[10px] font-medium text-black/70 transition-colors             hover:bg-red-500
+            hover:text-white"
+                                          >
+                                            Remove
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
                           </div>
                         )}
                       </div>
@@ -2334,7 +3037,7 @@ export default function MusicPlayer() {
                   type="button"
                   onClick={closeModal}
                   aria-label="Close music player"
-                  className="mb-3 flex h-6 items-center justify-center rounded-full px-3 text-[9px] font-medium uppercase tracking-[0.14em] text-black/40 transition-colors hover:bg-black/[0.04] hover:text-black/70"
+                  className="mb-3 flex h-6 items-center justify-center rounded-full px-3 text-[9px] font-medium uppercase tracking-[0.14em] text-black/40 transition-colors hover:bg-red-500 hover:text-white cursor-pointer"
                 >
                   Close
                 </button>
@@ -2494,12 +3197,16 @@ export default function MusicPlayer() {
                     onClick={() => {
                       if (isSearchOpen) {
                         closeSearchScreen();
+                      } else if (isQueueOpen) {
+                        closeQueueScreen();
                       } else {
                         openSearchScreen();
                       }
                     }}
                     aria-label={
-                      isSearchOpen ? "Back to now playing" : "Search music"
+                      isSearchOpen || isQueueOpen
+                        ? "Back to now playing"
+                        : "Search music"
                     }
                     className="
                       absolute
@@ -2523,7 +3230,7 @@ export default function MusicPlayer() {
                       active:scale-[0.98]
                     "
                   >
-                    {isSearchOpen ? (
+                    {isSearchOpen || isQueueOpen ? (
                       <span className="text-[9px] font-medium uppercase tracking-[0.16em] text-black/35">
                         Back
                       </span>

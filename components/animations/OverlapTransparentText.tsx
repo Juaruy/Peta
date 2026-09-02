@@ -56,7 +56,7 @@ export default function OverlapTransparentText() {
 
       tl.to(front, {
         scale: 3,
-        duration: 35,
+        duration: 30,
         ease: "none",
       });
 
@@ -66,7 +66,7 @@ export default function OverlapTransparentText() {
 
       tl.to(front, {
         scale: 15,
-        duration: 25,
+        duration: 20,
         ease: "none",
       });
 
@@ -76,7 +76,7 @@ export default function OverlapTransparentText() {
 
       tl.to(front, {
         scale: 500,
-        duration: 25,
+        duration: 20,
         ease: "none",
       });
 
@@ -94,6 +94,31 @@ export default function OverlapTransparentText() {
           ease: "none",
         },
         51,
+      );
+
+      // ----------------------------------------------------------------------
+      // BUFFER / HOLD
+      //
+      // Total timeline sekarang: 30 + 20 + 20 + 15 = 85 (sama dengan sebelum),
+      // supaya end: "+=500%" tetap memetakan timeline 1:1 ke 500% scroll.
+      //
+      // Dengan menyingkat phase zoom (35/25/25 -> 30/20/20) dan menambahkan
+      // buffer HOLD di akhir, seluruh animasi inti (zoom + logo reveal) sudah
+      // selesai di progress timeline ~82%, menyisakan sisa buffer sebelum
+      // scroll mentok di 100%.
+      // Sasaran: saat scroll tiba di posisi paling bawah, semua animasi PASTI
+      // sudah settle di nilai akhirnya, sehingga tidak ada lagi "reka" yang
+      // tampak di Edge (rounding scroll yang membuat section kedua nyangkut).
+      // ----------------------------------------------------------------------
+
+      tl.to(
+        front,
+        {
+          scale: 500,
+          duration: 15,
+          ease: "none",
+        },
+        70,
       );
 
       // ======================================================================
@@ -128,6 +153,13 @@ export default function OverlapTransparentText() {
         anticipatePin: 1,
 
         invalidateOnRefresh: true,
+
+        /*
+         * Agar ketika scroll berhenti/mentok (terutama di browser dengan
+         * rounding scroll berbeda seperti Edge), perubahan posisi scroll
+         * terakhir tidak "hilang". Tanpa ini ada reka tipis di ujung reveal.
+         */
+        fastScrollEnd: true,
       });
 
       // ======================================================================
@@ -191,7 +223,7 @@ export default function OverlapTransparentText() {
           loop
           muted
           playsInline
-          preload="auto"
+          preload="metadata"
         />
 
         {/* ==================================================================

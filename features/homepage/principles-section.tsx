@@ -44,7 +44,7 @@ export default function PrinciplesSection() {
         <div className="grid w-full grid-cols-1 gap-8 lg:grid-cols-[1.5fr_1fr] items-center lg:gap-16">
           {/* HEADING */}
           <div className="flex w-full justify-start">
-            <h2 className="whitespace-nowrap text-5xl font-aeonik font-medium leading-[1.05]  md:text-6xl lg:text-8xl">
+            <h2 className="whitespace-nowrap text-5xl font-aeonik font-medium leading-[1.05]  md:text-6xl lg:text-7xl">
               Our Process
             </h2>
           </div>
