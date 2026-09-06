@@ -9,6 +9,7 @@ import "./globals.css";
 import CustomScrollbar from "@/components/layout/CustomScrollbar";
 import CustomCursor from "@/components/ui/CustomCursor";
 import { LenisProvider } from "@/lib/lenis-context";
+import Navbar from "@/components/layout/navbar";
 
 // ==========================================================================
 // LOCAL FONT — AEONIK
@@ -89,16 +90,17 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`
-        ${onest.variable}
-        ${blinker.variable}
-        ${aeonik.variable}
-        h-full
-        antialiased
-      `}
+      className={[
+        onest.variable,
+        blinker.variable,
+        aeonik.variable,
+        "h-full",
+        "antialiased",
+      ].join(" ")}
     >
       <body className="min-h-full flex flex-col font-aeonik">
         <CustomCursor />
+        <Navbar />
 
         <LenisProvider>{children}</LenisProvider>
 

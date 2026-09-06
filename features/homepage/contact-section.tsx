@@ -591,20 +591,13 @@ export default function LetsCollaborate() {
               <NeoButton
                 variant="global"
                 color="secondary"
-                size="sm"
+                size="xl"
                 iconHover="up"
                 onClick={scrollToTop}
-                customIcon={<ArrowUp size={16} />}
-                className="
-                  inline-flex
-                  lg:[&>span]:text-[17px]
-                "
-                iconClassName="
-                  lg:h-[50px]
-                  lg:w-[50px]
-                "
+                customIcon={<ArrowUp size={17} />}
               >
-                GO UP
+                {" "}
+                GO UP{" "}
               </NeoButton>
             </div>
           </div>

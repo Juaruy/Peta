@@ -24,11 +24,12 @@ import {
   playSkipBack,
   playSkipForward,
   repeat,
-  remove,
+  removeOutline,
   search,
   volumeHigh,
   volumeLow,
   volumeMute,
+  musicalNotes,
 } from "ionicons/icons";
 
 import {
@@ -94,6 +95,74 @@ declare global {
       ) => YouTubePlayer;
     };
   }
+}
+
+// ==========================================================================
+// SHARED YOUTUBE PLAYER (SINGLETON)
+// ==========================================================================
+//
+// Satu player YouTube dibuat SEKALI secara global untuk seluruh aplikasi,
+// lalu di-share ke setiap instance MusicPlayer yang ter-mount.
+//
+// Kenapa? Sebelumnya setiap instance membuat `new window.YT.Player` dengan
+// `id="youtube-player"` yang SAMA. Kalau ada dua instance (mis. Navbar
+// ke-render ganda), YouTube API hanya menyisakan satu binding per elemen id,
+// sehingga instance kedua menimpa player yang sedang main → error
+// "loadVideoById is not a function" dan lagu mati saat navigasi.
+//
+// Dengan pola ini:
+//  - `sharedPlayer` menyimpan satu instance player yang dipakai semua orang.
+//  - `readySubscribers` / `stateChangeSubscribers` adalah daftar callback
+//    per-instance. Player memanggil SEMUA subscriber saat event onReady /
+//    onStateChange terjadi, sehingga UI tiap instance ikut terupdate.
+//    (Ini pola "publisher/subscriber" untuk callback routing — TIDAK ada
+//    hubungannya dengan login/auth.)
+//  - `holderCount` menghitung banyaknya instance aktif. Player baru di-destroy
+//    saat instance TERAKHIR lepas (holderCount === 0), supaya unmount satu
+//    instance tidak mematikan player milik instance lain.
+
+let sharedPlayer: YouTubePlayer | null = null;
+let holderCount = 0;
+const readySubscribers = new Set<() => void>();
+const stateChangeSubscribers = new Set<(event: { data: number }) => void>();
+
+// Bikin player sekali. Kalau sudah ada / blum siap (belum ada YT API atau
+// elemen target), mengembalikan null dan pemanggil akan retry.
+function ensureSharedPlayer(): YouTubePlayer | null {
+  if (sharedPlayer) {
+    return sharedPlayer;
+  }
+
+  if (!window.YT?.Player) {
+    return null;
+  }
+
+  const playerElement = document.getElementById("youtube-player");
+
+  if (!playerElement) {
+    return null;
+  }
+
+  sharedPlayer = new window.YT.Player("youtube-player", {
+    playerVars: {
+      autoplay: 0,
+      controls: 0,
+      modestbranding: 1,
+      rel: 0,
+    },
+
+    events: {
+      onReady: () => {
+        readySubscribers.forEach((fn) => fn());
+      },
+
+      onStateChange: (event) => {
+        stateChangeSubscribers.forEach((fn) => fn(event));
+      },
+    },
+  });
+
+  return sharedPlayer;
 }
 
 // ==========================================================================
@@ -528,7 +597,9 @@ function MusicWaveIcon({ isPlaying }: { isPlaying: boolean }) {
         animate={{ opacity: mounted ? 1 : 0 }}
         transition={{ duration: 0.15 }}
       >
-        {mounted && <IonIcon icon={remove} className="h-[16px] w-[16px]" />}
+        {mounted && (
+          <IonIcon icon={musicalNotes} className="h-[16px] w-[16px]" />
+        )}
       </motion.span>
     );
   }
@@ -947,84 +1018,93 @@ export default function MusicPlayer() {
   useEffect(() => {
     let cancelled = false;
 
+    // Callback per-instance untuk onReady: set volume & lanjutkan video yang
+    // "pending" (lagu yang diklik sebelum player siap).
+    const handleReady = () => {
+      if (cancelled) {
+        return;
+      }
+
+      playerRef.current?.setVolume(volumeRef.current);
+
+      if (pendingVideoIdRef.current) {
+        const videoId = pendingVideoIdRef.current;
+
+        pendingVideoIdRef.current = null;
+
+        playerRef.current?.loadVideoById(videoId);
+        playerRef.current?.playVideo();
+
+        setIsPlaying(true);
+      }
+    };
+
+    // Callback per-instance untuk onStateChange: sinkronkan UI dengan kondisi
+    // pemutaran (playing / paused / ended → next).
+    const handleStateChange = (event: { data: number }) => {
+      if (cancelled) {
+        return;
+      }
+
+      if (event.data === 1) {
+        setIsPlaying(true);
+        resetFadeTimer();
+      }
+
+      if (event.data === 2) {
+        setIsPlaying(false);
+        resetFadeTimer();
+      }
+
+      if (event.data === 0) {
+        setIsPlaying(false);
+        playNextSong();
+      }
+    };
+
+    // Tambahkan callback instance ini ke shared player SEBELUM meng-increment
+    // holderCount, supaya tidak ada jendela di mana subscriber terdaftar tapi
+    // holderCount belum dihitung.
+    readySubscribers.add(handleReady);
+    stateChangeSubscribers.add(handleStateChange);
+    holderCount += 1;
+
     const createPlayer = () => {
       if (cancelled) {
         return;
       }
 
-      if (!window.YT?.Player) {
+      // Ambil / buat player global (singleton). Return null kalau YT API atau
+      // elemen #youtube-player belum siap → retry sampai sukses.
+      const player = ensureSharedPlayer();
+
+      if (!player) {
         setTimeout(createPlayer, 100);
         return;
       }
 
-      if (playerRef.current) {
-        return;
-      }
-
-      const playerElement = document.getElementById("youtube-player");
-
-      if (!playerElement) {
-        setTimeout(createPlayer, 100);
-        return;
-      }
-
-      playerRef.current = new window.YT.Player("youtube-player", {
-        playerVars: {
-          autoplay: 0,
-          controls: 0,
-          modestbranding: 1,
-          rel: 0,
-        },
-
-        events: {
-          onReady: () => {
-            if (cancelled) {
-              return;
-            }
-
-            // Apply current volume as soon as the YouTube player is ready.
-            playerRef.current?.setVolume(volumeRef.current);
-
-            if (pendingVideoIdRef.current) {
-              const videoId = pendingVideoIdRef.current;
-
-              pendingVideoIdRef.current = null;
-
-              playerRef.current?.loadVideoById(videoId);
-              playerRef.current?.playVideo();
-
-              setIsPlaying(true);
-            }
-          },
-
-          onStateChange: (event) => {
-            if (cancelled) {
-              return;
-            }
-
-            if (event.data === 1) {
-              setIsPlaying(true);
-              resetFadeTimer();
-            }
-
-            if (event.data === 2) {
-              setIsPlaying(false);
-              resetFadeTimer();
-            }
-
-            if (event.data === 0) {
-              setIsPlaying(false);
-              playNextSong();
-            }
-          },
-        },
-      });
+      // Tandai player aktif milik instance ini.
+      playerRef.current = player;
     };
 
     createPlayer();
 
     return () => {
       cancelled = true;
+
+      // Cabut callback milik instance ini (hanya ini, bukan punya instance
+      // lain) dan kurangi hitungan instance aktif.
+      readySubscribers.delete(handleReady);
+      stateChangeSubscribers.delete(handleStateChange);
+      holderCount -= 1;
+
+      // Bila ini instance TERAKHIR yang memakai player, baru hancurkan player.
+      if (holderCount <= 0) {
+        sharedPlayer?.destroy();
+        sharedPlayer = null;
+      }
+
+      playerRef.current = null;
     };
   }, [playNextSong, resetFadeTimer]);
 
@@ -1576,8 +1656,10 @@ export default function MusicPlayer() {
         searchAbortControllerRef.current.abort();
       }
 
-      playerRef.current?.destroy();
-      playerRef.current = null;
+      // PENTING: jangan `playerRef.current?.destroy()` di sini. Shared player
+      // (singleton) di-destroy di dalam effect "CREATE YOUTUBE PLAYER" dengan
+      // perhitungan `holderCount`, supaya unmount satu instance tidak mematikan
+      // player yang sedang dipakai instance lain.
     };
   }, []);
 
@@ -1601,18 +1683,14 @@ export default function MusicPlayer() {
       <NeoButton
         variant="global"
         color="secondary"
-        size="sm"
+        size="xl"
         iconHover="none"
         customIcon={<MusicWaveIcon isPlaying={isPlaying} />}
         className="
-          hidden
-          md:inline-flex
-          [&>span]:hidden
-        "
-        iconClassName="
-          md:h-[42px] md:w-[42px]
-          lg:h-[50px] lg:w-[50px]
-        "
+    hidden
+    md:inline-flex
+    [&>span]:hidden
+  "
         onClick={openSearch}
       >
         {""}

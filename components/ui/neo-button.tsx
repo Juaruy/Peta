@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { AnimatePresence, motion } from "framer-motion";
 
-import { MessagesSquare, Circle } from "lucide-react";
+import { Circle, MessagesSquare } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -14,21 +14,25 @@ type NeoButtonProps = {
   /* ================================================================
      VARIANT
      ================================================================= */
-  variant?: "global" | "menu";
+
+  variant?: "global" | "global-action" | "menu";
 
   /* ================================================================
      SIZE
      ================================================================= */
+
   size?: "sm" | "md" | "lg" | "xl";
 
   /* ================================================================
      PRESET COLORS
      ================================================================= */
+
   color?: "primary" | "secondary";
 
   /* ================================================================
      CUSTOM COLORS
      ================================================================= */
+
   bgColor?: string;
   textColor?: string;
   iconBgColor?: string;
@@ -36,88 +40,117 @@ type NeoButtonProps = {
   /* ================================================================
      ICON
      ================================================================= */
+
   icon?: boolean;
   customIcon?: React.ReactNode;
 
   /* ================================================================
-     GLOBAL ICON HOVER
-     side = icon slides horizontally
-     up   = icon slides vertically
-     none = no icon hover animation
-
-     Only applies to variant="global".
+     ICON POSITION
      ================================================================= */
+
+  iconPosition?: "left" | "right";
+
+  /* ================================================================
+     GLOBAL ICON HOVER
+     ================================================================= */
+
   iconHover?: "side" | "up" | "none";
 
   /* ================================================================
      CUSTOM CLASS
      ================================================================= */
+
   className?: string;
   iconClassName?: string;
 
   /* ================================================================
      EVENT
      ================================================================= */
+
   onClick?: () => void;
 };
 
 /* ================================================================
    SIZES
-   ================================================================= */
+
+   Typography:
+   - text = SATU-SATUNYA sumber font-size
+   - font = SATU-SATUNYA sumber font-weight
+
+   Global-action:
+   - iconSize = ukuran container icon
+   - actionIconPad = ruang horizontal text terhadap icon
+
+   ================================================================ */
 
 const sizes = {
   sm: {
     text: "text-[14px]",
     font: "font-medium",
-    textPadding: "pl-4 pr-2.5",
-    icon: "h-[38px] w-[38px]",
-    iconSize: "h-[16px] w-[16px]",
+    textPadding: "pl-3 pr-2",
+    icon: "h-[30px] w-[30px]",
+    iconSize: "h-[14px] w-[14px]",
+    iconPx: 14,
     outer: "m-[3px]",
-    dotSize: 6,
-    dotGap: 9,
+    actionHeight: "h-[36px]",
+    actionPadding: "px-3",
+    // Lebih dekat ke icon
+    actionIconPad: "px-5",
+    dotSize: 5,
+    dotGap: 6,
   },
 
   md: {
-    text: "text-[16px]",
-    font: "font-semibold",
-    textPadding: "pl-5 pr-3",
-    icon: "h-[46px] w-[46px]",
-    iconSize: "h-[18px] w-[18px]",
-    outer: "m-[4px]",
-    dotSize: 7,
-    dotGap: 11,
+    text: "text-[14px]",
+    font: "font-medium",
+    textPadding: "pl-3.5 pr-2.5",
+    icon: "h-[34px] w-[34px]",
+    iconSize: "h-[15px] w-[15px]",
+    iconPx: 15,
+    outer: "m-[3px]",
+    actionHeight: "h-[40px]",
+    actionPadding: "px-3.5",
+    // Lebih dekat ke icon
+    actionIconPad: "px-6",
+    dotSize: 5,
+    dotGap: 7,
   },
 
   lg: {
-    text: "text-[18px]",
-    font: "font-semibold",
-    textPadding: "pl-6 pr-4",
-    icon: "h-[52px] w-[52px]",
-    iconSize: "h-[20px] w-[20px]",
-    outer: "m-[4px]",
-    dotSize: 8,
-    dotGap: 12,
+    text: "text-[16px]",
+    font: "font-medium",
+    textPadding: "pl-4 pr-2.5",
+    icon: "h-[38px] w-[38px]",
+    iconSize: "h-[16px] w-[16px]",
+    iconPx: 16,
+    outer: "m-[3px]",
+    actionHeight: "h-[44px]",
+    actionPadding: "px-4",
+    // Lebih dekat ke icon
+    actionIconPad: "px-7",
+    dotSize: 6,
+    dotGap: 8,
   },
 
   xl: {
-    text: "text-[22px]",
-    font: "font-semibold",
-    textPadding: "pl-7 pr-5",
-    icon: "h-[60px] w-[60px]",
-    iconSize: "h-[24px] w-[24px]",
-    outer: "m-[5px]",
-    dotSize: 9,
-    dotGap: 13,
+    text: "text-[16px]",
+    font: "font-medium",
+    textPadding: "pl-4 pr-2.5",
+    icon: "h-[42px] w-[42px]",
+    iconSize: "h-[17px] w-[17px]",
+    iconPx: 17,
+    outer: "m-[3px]",
+    actionHeight: "h-[48px]",
+    actionPadding: "px-5",
+    // Lebih dekat ke icon
+    actionIconPad: "px-8",
+    dotSize: 6,
+    dotGap: 8,
   },
 };
 
 /* ================================================================
    MENU ITEMS
-
-   href harus sama dengan ID section.
-
-   Contoh:
-   <section id="work">
    ================================================================= */
 
 const menuItems = [
@@ -144,12 +177,16 @@ const colorVariants = {
     bg: "bg-neutral-200",
     text: "text-black",
     iconBg: "bg-neutral-100",
+    washBg: "bg-neutral-900",
+    washText: "text-white",
   },
 
   secondary: {
     bg: "bg-neutral-900",
     text: "text-white",
     iconBg: "bg-neutral-800",
+    washBg: "bg-neutral-200",
+    washText: "text-black",
   },
 };
 
@@ -166,17 +203,30 @@ function MenuDotsIcon({
 }) {
   const dotSize = size.dotSize;
   const gap = size.dotGap;
+
   const offset = dotSize / 2 + gap / 5;
 
   return (
     <motion.span
-      className="relative flex h-7 w-7 shrink-0 items-center justify-center"
+      className="
+        relative
+        flex
+        h-7
+        w-7
+        shrink-0
+        items-center
+        justify-center
+      "
       initial={false}
       animate={isOpen ? "open" : "closed"}
     >
-      {/* DOT 1 */}
       <motion.span
-        className="absolute flex items-center justify-center"
+        className="
+          absolute
+          flex
+          items-center
+          justify-center
+        "
         variants={{
           closed: {
             x: -offset,
@@ -202,9 +252,13 @@ function MenuDotsIcon({
         />
       </motion.span>
 
-      {/* DOT 2 */}
       <motion.span
-        className="absolute flex items-center justify-center"
+        className="
+          absolute
+          flex
+          items-center
+          justify-center
+        "
         variants={{
           closed: {
             x: offset,
@@ -235,20 +289,6 @@ function MenuDotsIcon({
 
 /* ================================================================
    GLOBAL ICON
-
-   Icon keluar dari satu sisi lalu icon baru masuk
-   dari sisi berlawanan.
-
-   side:
-   - keluar kiri
-   - masuk dari kanan
-
-   up:
-   - keluar atas
-   - masuk dari bawah
-
-   none:
-   - static
    ================================================================= */
 
 function GlobalIcon({
@@ -267,7 +307,17 @@ function GlobalIcon({
   const isVertical = direction === "up";
 
   return (
-    <span className="relative flex h-full w-full items-center justify-center overflow-hidden">
+    <span
+      className="
+        relative
+        flex
+        h-full
+        w-full
+        items-center
+        justify-center
+        overflow-hidden
+      "
+    >
       <AnimatePresence initial={false} mode="popLayout">
         {!isHovered ? (
           <motion.span
@@ -288,7 +338,13 @@ function GlobalIcon({
               duration: 0.4,
               ease: [0.76, 0, 0.24, 1],
             }}
-            className="absolute inset-0 flex items-center justify-center"
+            className="
+              absolute
+              inset-0
+              flex
+              items-center
+              justify-center
+            "
           >
             {icon}
           </motion.span>
@@ -311,7 +367,13 @@ function GlobalIcon({
               duration: 0.4,
               ease: [0.76, 0, 0.24, 1],
             }}
-            className="absolute inset-0 flex items-center justify-center"
+            className="
+              absolute
+              inset-0
+              flex
+              items-center
+              justify-center
+            "
           >
             {icon}
           </motion.span>
@@ -322,28 +384,179 @@ function GlobalIcon({
 }
 
 /* ================================================================
-   COMPONENT
+   GLOBAL ACTION CONTENT
+   ================================================================= */
+
+function GlobalActionContent({
+  icon,
+  children,
+  iconPosition,
+  size,
+  color,
+}: {
+  icon: React.ReactNode;
+  children: React.ReactNode;
+  iconPosition: "left" | "right";
+  size: (typeof sizes)[keyof typeof sizes];
+  color: "primary" | "secondary";
+}) {
+  const isRight = iconPosition === "right";
+
+  const iconMainPos = isRight
+    ? "right-4 group-hover:right-[-25%]"
+    : "left-4 group-hover:left-[-25%]";
+
+  const iconHoverPos = isRight
+    ? "left-[-25%] group-hover:left-4"
+    : "right-[-25%] group-hover:right-4";
+
+  const textShift = isRight
+    ? "-translate-x-2 group-hover:translate-x-2"
+    : "translate-x-2 group-hover:-translate-x-2";
+
+  return (
+    <span
+      className={cn(
+        `
+          relative
+          flex
+          shrink-0
+          items-center
+          justify-center
+          overflow-hidden
+        `,
+        size.actionHeight,
+      )}
+    >
+      {/* ==========================================================
+          ICON UTAMA
+
+          Ukuran icon mengikuti size.iconSize.
+          ========================================================== */}
+
+      <span
+        className={cn(
+          `
+            absolute
+            z-20
+            flex
+            shrink-0
+            items-center
+            justify-center
+
+            transition-[left,right,transform,opacity]
+            duration-[650ms]
+            ease-[cubic-bezier(0.76,0,0.24,1)]
+
+            will-change-[left,right,transform]
+          `,
+          size.iconSize,
+          iconMainPos,
+          colorVariants[color].text,
+        )}
+      >
+        {icon}
+      </span>
+
+      {/* ==========================================================
+          ICON HOVER
+
+          Ukuran icon sama persis dengan icon utama.
+          ========================================================== */}
+
+      <span
+        className={cn(
+          `
+            absolute
+            z-20
+            flex
+            shrink-0
+            items-center
+            justify-center
+
+            transition-[left,right,transform,opacity]
+            duration-[650ms]
+            ease-[cubic-bezier(0.76,0,0.24,1)]
+
+            will-change-[left,right,transform]
+          `,
+          size.iconSize,
+          iconHoverPos,
+          colorVariants[color].text,
+        )}
+      >
+        {icon}
+      </span>
+
+      {/* ==========================================================
+          TEXT
+          ========================================================== */}
+
+      <span
+        className={cn(
+          `
+            relative
+            z-10
+            block
+            w-max
+            shrink-0
+            whitespace-nowrap
+            leading-none
+            tracking-[-0.03em]
+
+            transition-transform
+            duration-[650ms]
+            ease-[cubic-bezier(0.76,0,0.24,1)]
+
+            will-change-transform
+          `,
+          size.text,
+          size.font,
+          textShift,
+          size.actionIconPad,
+          colorVariants[color].text,
+        )}
+      >
+        {children}
+      </span>
+    </span>
+  );
+}
+
+/* ================================================================
+   NEO BUTTON
    ================================================================= */
 
 export default function NeoButton({
   children,
+
   variant = "global",
+
   size = "lg",
+
   color = "secondary",
+
   bgColor,
   textColor,
   iconBgColor,
+
   icon = true,
   customIcon,
+
+  iconPosition = "right",
+
   iconHover = "side",
+
   className,
   iconClassName,
+
   onClick,
 }: NeoButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
   const isMenu = variant === "menu";
+  const isGlobalAction = variant === "global-action";
 
   const buttonLabel = isMenu && isOpen ? "Close" : children;
 
@@ -353,7 +566,7 @@ export default function NeoButton({
   const isDotsVertical = isHovered !== isOpen;
 
   /* ================================================================
-     BUTTON CLICK
+     CLICK
      ================================================================= */
 
   const handleClick = () => {
@@ -372,12 +585,73 @@ export default function NeoButton({
     <MessagesSquare strokeWidth={2} className={currentSize.iconSize} />
   );
 
+  /* ================================================================
+     CUSTOM ICON
+     ================================================================= */
+
+  const finalIcon = customIcon ? (
+    <span
+      className={cn(
+        "flex shrink-0 items-center justify-center",
+
+        /*
+         * Untuk global-action:
+         * wrapper icon mengikuti ukuran iconSize.
+         */
+        isGlobalAction && currentSize.iconSize,
+
+        isGlobalAction && iconClassName,
+      )}
+    >
+      {customIcon}
+    </span>
+  ) : (
+    defaultGlobalIcon
+  );
+
+  /* ================================================================
+     STANDARD ICON ELEMENT
+     ================================================================= */
+
+  const iconElement =
+    icon && !isGlobalAction ? (
+      <div
+        style={{
+          backgroundColor: iconBgColor,
+        }}
+        className={cn(
+          `
+            flex
+            shrink-0
+            items-center
+            justify-center
+            overflow-hidden
+            rounded-full
+          `,
+          currentSize.icon,
+          currentSize.outer,
+          currentColor.iconBg,
+          iconClassName,
+        )}
+      >
+        {isMenu ? (
+          <MenuDotsIcon size={currentSize} isOpen={isDotsVertical} />
+        ) : (
+          <GlobalIcon
+            icon={finalIcon}
+            direction={iconHover}
+            isHovered={isHovered}
+          />
+        )}
+      </div>
+    ) : null;
+
+  /* ================================================================
+     RETURN
+     ================================================================= */
+
   return (
     <div className="relative w-fit">
-      {/* ============================================================== 
-          BUTTON
-          ============================================================== */}
-
       <motion.button
         initial="rest"
         whileHover="hover"
@@ -426,93 +700,103 @@ export default function NeoButton({
           className,
         )}
       >
-        {/* ============================================================
-            LABEL
-            ============================================================= */}
+        {/* ==========================================================
+            GLOBAL ACTION
+            ========================================================== */}
 
-        <span className="relative inline-block overflow-hidden">
-          <AnimatePresence mode="popLayout" initial={false}>
-            <motion.span
-              key={isMenu ? (isOpen ? "close" : "open") : "label"}
-              initial={{
-                y: "100%",
-              }}
-              animate={{
-                y: "0%",
-              }}
-              exit={{
-                y: "-100%",
-              }}
-              transition={{
-                duration: 0.45,
-                ease: [0.76, 0, 0.24, 1],
-              }}
+        {isGlobalAction ? (
+          icon ? (
+            <GlobalActionContent
+              icon={finalIcon}
+              iconPosition={iconPosition}
+              size={currentSize}
+              color={color}
+            >
+              {buttonLabel}
+            </GlobalActionContent>
+          ) : (
+            <span
               className={cn(
                 `
-                  block
+                  relative
+                  z-10
+                  flex
+                  items-center
+                  justify-center
                   w-max
                   whitespace-nowrap
                   leading-none
                   tracking-[-0.03em]
-                  !text-[16px]
                 `,
+                currentSize.text,
                 currentSize.font,
-                icon ? currentSize.textPadding : "px-6 py-4",
+                currentSize.actionHeight,
+                currentSize.actionPadding,
+                colorVariants[color].text,
               )}
             >
               {buttonLabel}
-            </motion.span>
-          </AnimatePresence>
-        </span>
+            </span>
+          )
+        ) : (
+          <>
+            {/* ======================================================
+                ICON LEFT
+                ====================================================== */}
 
-        {/* ============================================================
-            ICON
-            ============================================================= */}
+            {iconPosition === "left" && iconElement}
 
-        {icon && (
-          <div
-            style={{
-              backgroundColor: iconBgColor,
-            }}
-            className={cn(
-              `
-                flex
-                shrink-0
-                items-center
-                justify-center
-                overflow-hidden
-                rounded-full
-              `,
-              currentSize.icon,
-              currentSize.outer,
-              currentColor.iconBg,
-              iconClassName,
-            )}
-          >
-            {/* ========================================================
-                MENU ICON
-                ======================================================== */}
+            {/* ======================================================
+                LABEL
+                ====================================================== */}
 
-            {isMenu ? (
-              <MenuDotsIcon size={currentSize} isOpen={isDotsVertical} />
-            ) : (
-              /* ======================================================
-                 GLOBAL ICON
-                 ====================================================== */
+            <span className="relative inline-block overflow-hidden">
+              <AnimatePresence mode="popLayout" initial={false}>
+                <motion.span
+                  key={isMenu ? (isOpen ? "close" : "open") : "label"}
+                  initial={{
+                    y: "100%",
+                  }}
+                  animate={{
+                    y: "0%",
+                  }}
+                  exit={{
+                    y: "-100%",
+                  }}
+                  transition={{
+                    duration: 0.45,
+                    ease: [0.76, 0, 0.24, 1],
+                  }}
+                  className={cn(
+                    `
+                      block
+                      w-max
+                      whitespace-nowrap
+                      leading-none
+                      tracking-[-0.03em]
+                    `,
+                    currentSize.text,
+                    currentSize.font,
+                    icon ? currentSize.textPadding : "px-6 py-4",
+                  )}
+                >
+                  {buttonLabel}
+                </motion.span>
+              </AnimatePresence>
+            </span>
 
-              <GlobalIcon
-                icon={customIcon ? customIcon : defaultGlobalIcon}
-                direction={iconHover}
-                isHovered={isHovered}
-              />
-            )}
-          </div>
+            {/* ======================================================
+                ICON RIGHT
+                ====================================================== */}
+
+            {iconPosition === "right" && iconElement}
+          </>
         )}
       </motion.button>
 
-      {/* ============================================================== 
+      {/* ============================================================
           MENU DROPDOWN
-          ============================================================== */}
+          ============================================================ */}
 
       <AnimatePresence>
         {isMenu && isOpen && (
@@ -585,7 +869,7 @@ export default function NeoButton({
                     py-3
                     text-left
                     text-[24px]
-                    font-semibold
+                    font-medium
                     leading-none
                     tracking-[-0.05em]
                     text-black

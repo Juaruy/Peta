@@ -6,16 +6,31 @@ import Image from "next/image";
 
 import Link from "next/link";
 
+import { usePathname, useRouter } from "next/navigation";
+
+import { ArrowLeft } from "lucide-react";
+
 import NeoButton from "@/components/ui/neo-button";
 
 import MusicPlayer from "../ui/MusicPlayer";
 
 export default function Navbar() {
   const [isContactVisible, setIsContactVisible] = useState(false);
+
   const [isHeroVisible, setIsHeroVisible] = useState(true);
+
+  const pathname = usePathname();
+
+  const router = useRouter();
+
+  // Detect page detail project: /work/[slug]
+  const isProjectDetail =
+    pathname.startsWith("/work/") &&
+    pathname.split("/").filter(Boolean).length === 2;
 
   useEffect(() => {
     const contact = document.getElementById("contact");
+
     const hero = document.getElementById("hero");
 
     const observers: IntersectionObserver[] = [];
@@ -31,6 +46,7 @@ export default function Navbar() {
       );
 
       contactObserver.observe(contact);
+
       observers.push(contactObserver);
     }
 
@@ -45,6 +61,7 @@ export default function Navbar() {
       );
 
       heroObserver.observe(hero);
+
       observers.push(heroObserver);
     }
 
@@ -75,6 +92,7 @@ export default function Navbar() {
     >
       <header
         className="
+          relative
           mx-auto
           flex
           h-24
@@ -118,6 +136,32 @@ export default function Navbar() {
           </Link>
         </div>
 
+        {/* CENTER / BACK BUTTON */}
+        {isProjectDetail && (
+          <div
+            className="
+              absolute
+              left-1/2
+              top-1/2
+              hidden
+              -translate-x-1/2
+              -translate-y-1/2
+              md:block
+            "
+          >
+            <NeoButton
+              variant="global-action"
+              color="primary"
+              size="xl"
+              customIcon={<ArrowLeft size={17} />}
+              iconPosition="left"
+              onClick={() => router.back()}
+            >
+              Back
+            </NeoButton>
+          </div>
+        )}
+
         {/* RIGHT */}
         <div
           className="
@@ -132,34 +176,13 @@ export default function Navbar() {
           <NeoButton
             variant="global"
             color="secondary"
-            size="sm"
-            className="
-              hidden
-              md:inline-flex
-              md:[&>span]:text-[15px]
-              lg:[&>span]:text-[17px]
-            "
-            iconClassName="
-              md:h-[42px] md:w-[42px]
-              lg:h-[50px] lg:w-[50px]
-            "
+            size="xl"
+            className="hidden md:inline-flex"
           >
-            Let&apos;s Talk
+            Let's Talk
           </NeoButton>
 
-          <NeoButton
-            variant="menu"
-            size="sm"
-            color="primary"
-            className="
-              md:[&>span]:text-[15px]
-              lg:[&>span]:text-[17px]
-            "
-            iconClassName="
-              md:h-[42px] md:w-[42px]
-              lg:h-[50px] lg:w-[50px]
-            "
-          >
+          <NeoButton variant="menu" size="xl" color="primary">
             Menu
           </NeoButton>
         </div>
