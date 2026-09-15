@@ -237,6 +237,7 @@ export default function LetsCollaborate() {
 
       <footer
         ref={sectionRef}
+        data-logo-trigger
         id="contact"
         className="
           relative

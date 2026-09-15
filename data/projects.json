@@ -17,6 +17,8 @@
 
     "platform": "Mobile & Desktop",
 
+    "link": "https://commongroundproject.id/",
+
     "hero": {
       "src": "/images/projects/common-ground/hero.webp",
       "alt": "Common Ground Fight"
@@ -26,36 +28,36 @@
       {
         "src": "/images/projects/common-ground/01.png",
         "alt": "Common Ground Fight visual 01",
-        "size": "large"
+        "size": "small"
       },
       {
         "src": "/images/projects/common-ground/02.png",
         "alt": "Common Ground Fight visual 02",
-        "size": "large"
+        "size": "small"
       },
       {
         "src": "/images/projects/common-ground/03.png",
         "alt": "Common Ground Fight visual 03",
-        "size": "large"
+        "size": "small"
       },
       {
         "src": "/images/projects/common-ground/04.png",
         "alt": "Common Ground Fight visual 04",
-        "size": "large"
+        "size": "small"
       }
     ],
 
     "nextProject": {
-      "slug": "levi-camp"
+      "slug": "neo-tech"
     }
   },
 
-  "levi-camp": {
-    "title": "Levi Camp",
+  "neo-tech": {
+    "title": "Neo Tech",
     "category": "Brand Experience",
     "year": "2025",
 
-    "description": "A digital experience designed around the identity and visual language of Levi Camp.",
+    "description": "Lorem ipsum dolor sit amet, consectetur exercitation esse magna cillum eu pariatur. In minim velit labore ut elit veniam aliqua sunt nisi ea. Ad proident cupidatat reprehenderit eiusmod ea ut nisi non. Qui proident enim est fugiat ex quis ad sint ex cupidatat occaecat. Incididunt eiusmod reprehenderit enim id consectetur est nostrud.",
 
     "services": [
       "UI/UX Design",
@@ -67,6 +69,8 @@
 
     "platform": "Web",
 
+    "link": "https://levicamp.tazkiyaworks.fun/",
+
     "hero": {
       "src": "/images/projects/levi-camp/hero.webp",
       "alt": "Levi Camp"
@@ -74,19 +78,19 @@
 
     "gallery": [
       {
-        "src": "/images/projects/levi-camp/01.webp",
+        "src": "/images/projects/neo-tech/01.png",
         "alt": "Levi Camp visual 01",
-        "size": "large"
+        "size": "small"
       },
       {
-        "src": "/images/projects/levi-camp/02.webp",
+        "src": "/images/projects/neo-tech/02.png",
         "alt": "Levi Camp visual 02",
-        "size": "medium"
+        "size": "small"
       },
       {
         "src": "/images/projects/levi-camp/03.webp",
         "alt": "Levi Camp visual 03",
-        "size": "large"
+        "size": "small"
       }
     ],
 

@@ -10,11 +10,11 @@ export type Project = {
   title: string;
   category: string;
   year: string;
-
   description: string;
 
-  services: string[];
+  link: string;
 
+  services: string[];
   role: string;
   platform: string;
 
@@ -30,5 +30,4 @@ export type Project = {
   };
 };
 
-export const projects =
-  projectsData as Record<string, Project>;
+export const projects = projectsData as Record<string, Project>;

@@ -8,86 +8,85 @@ import Link from "next/link";
 
 import { usePathname, useRouter } from "next/navigation";
 
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Menu as MenuIcon } from "lucide-react";
 
 import NeoButton from "@/components/ui/neo-button";
 
 import MusicPlayer from "../ui/MusicPlayer";
 
 export default function Navbar() {
-  const [isContactVisible, setIsContactVisible] = useState(false);
-
-  const [isHeroVisible, setIsHeroVisible] = useState(true);
+  const [isLogoTriggerVisible, setIsLogoTriggerVisible] = useState(false);
+  const [isAtTop, setIsAtTop] = useState(true);
 
   const pathname = usePathname();
-
   const router = useRouter();
 
-  // Detect page detail project: /work/[slug]
   const isProjectDetail =
     pathname.startsWith("/work/") &&
     pathname.split("/").filter(Boolean).length === 2;
 
   useEffect(() => {
-    const contact = document.getElementById("contact");
+    const logoTriggers = document.querySelectorAll("[data-logo-trigger]");
+    const visibleTriggers = new Set<Element>();
 
-    const hero = document.getElementById("hero");
+    const handleScroll = () => {
+      setIsAtTop(window.scrollY <= 10);
+    };
 
-    const observers: IntersectionObserver[] = [];
+    handleScroll();
 
-    if (contact) {
-      const contactObserver = new IntersectionObserver(
-        ([entry]) => {
-          setIsContactVisible(entry.isIntersecting);
-        },
-        {
-          threshold: 0.1,
-        },
-      );
+    window.addEventListener("scroll", handleScroll, {
+      passive: true,
+    });
 
-      contactObserver.observe(contact);
-
-      observers.push(contactObserver);
+    if (logoTriggers.length === 0) {
+      setIsLogoTriggerVisible(false);
     }
 
-    if (hero) {
-      const heroObserver = new IntersectionObserver(
-        ([entry]) => {
-          setIsHeroVisible(entry.isIntersecting);
-        },
-        {
-          threshold: 0.1,
-        },
-      );
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            visibleTriggers.add(entry.target);
+          } else {
+            visibleTriggers.delete(entry.target);
+          }
+        });
 
-      heroObserver.observe(hero);
+        setIsLogoTriggerVisible(visibleTriggers.size > 0);
+      },
+      {
+        threshold: 0.1,
+      },
+    );
 
-      observers.push(heroObserver);
-    }
+    logoTriggers.forEach((trigger) => {
+      observer.observe(trigger);
+    });
 
     return () => {
-      observers.forEach((observer) => {
-        observer.disconnect();
-      });
+      window.removeEventListener("scroll", handleScroll);
+      observer.disconnect();
+      visibleTriggers.clear();
     };
-  }, []);
+  }, [pathname]);
 
-  const showLogo = isHeroVisible || isContactVisible;
+  const showLogo = isAtTop || isLogoTriggerVisible;
 
   return (
-    /* OUTER WRAPPER */
     <div
       className="
         fixed
         z-50
+        flex
         w-full
-        px-8
-        py-4
-        md:py-8
-        md:px-12
-        lg:px-16
         items-center
         justify-center
+        px-6
+        py-4
+        md:px-12
+        md:py-8
+        lg:px-16
       "
     >
       <header
@@ -101,7 +100,10 @@ export default function Navbar() {
           justify-between
         "
       >
-        {/* LEFT / LOGO */}
+        {/* ==========================================================
+            LOGO
+            ========================================================== */}
+
         <div
           className={`
             relative
@@ -119,7 +121,7 @@ export default function Navbar() {
             }
           `}
         >
-          <Link href="#hero" aria-label="Home">
+          <Link href="/" aria-label="Home">
             <Image
               src="/LogoPeta.svg"
               alt="Logo"
@@ -130,13 +132,16 @@ export default function Navbar() {
                 object-left
                 transition-all
                 duration-300
-                ${isContactVisible ? "invert" : ""}
+                ${isLogoTriggerVisible ? "invert" : ""}
               `}
             />
           </Link>
         </div>
 
-        {/* CENTER / BACK BUTTON */}
+        {/* ==========================================================
+            DESKTOP BACK BUTTON
+            ========================================================== */}
+
         {isProjectDetail && (
           <div
             className="
@@ -162,7 +167,10 @@ export default function Navbar() {
           </div>
         )}
 
-        {/* RIGHT */}
+        {/* ==========================================================
+            RIGHT ACTIONS
+            ========================================================== */}
+
         <div
           className="
             flex
@@ -171,7 +179,33 @@ export default function Navbar() {
             gap-2
           "
         >
+          {/* ========================================================
+              MUSIC
+              ======================================================== */}
+
           <MusicPlayer />
+
+          {/* ========================================================
+              MOBILE BACK BUTTON
+              ======================================================== */}
+
+          {isProjectDetail && (
+            <NeoButton
+              variant="global-action"
+              color="primary"
+              size="xl"
+              customIcon={<ArrowLeft size={17} />}
+              iconPosition="left"
+              onClick={() => router.back()}
+              className="md:hidden"
+            >
+              {null}
+            </NeoButton>
+          )}
+
+          {/* ========================================================
+              LET'S TALK
+              ======================================================== */}
 
           <NeoButton
             variant="global"
@@ -182,8 +216,26 @@ export default function Navbar() {
             Let's Talk
           </NeoButton>
 
-          <NeoButton variant="menu" size="xl" color="primary">
-            Menu
+          {/* ========================================================
+              MENU
+              ======================================================== */}
+
+          <NeoButton
+            variant="menu"
+            size="xl"
+            color="primary"
+            customIcon={<MenuIcon size={18} />}
+            className="
+              !h-12
+              !w-12
+              !min-w-0
+              !p-0
+              md:!h-auto
+              md:!w-auto
+              md:!p-auto
+            "
+          >
+            <span className="hidden md:inline">Menu</span>
           </NeoButton>
         </div>
       </header>

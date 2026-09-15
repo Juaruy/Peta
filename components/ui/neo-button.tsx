@@ -78,7 +78,9 @@ type NeoButtonProps = {
    - font = SATU-SATUNYA sumber font-weight
 
    Global-action:
-   - iconSize = ukuran container icon
+   - iconSize = ukuran icon
+   - actionHeight = tinggi button
+   - actionWidth = lebar button khusus icon-only
    - actionIconPad = ruang horizontal text terhadap icon
 
    ================================================================ */
@@ -93,8 +95,8 @@ const sizes = {
     iconPx: 14,
     outer: "m-[3px]",
     actionHeight: "h-[36px]",
+    actionWidth: "w-[36px]",
     actionPadding: "px-3",
-    // Lebih dekat ke icon
     actionIconPad: "px-5",
     dotSize: 5,
     dotGap: 6,
@@ -109,8 +111,8 @@ const sizes = {
     iconPx: 15,
     outer: "m-[3px]",
     actionHeight: "h-[40px]",
+    actionWidth: "w-[40px]",
     actionPadding: "px-3.5",
-    // Lebih dekat ke icon
     actionIconPad: "px-6",
     dotSize: 5,
     dotGap: 7,
@@ -125,8 +127,8 @@ const sizes = {
     iconPx: 16,
     outer: "m-[3px]",
     actionHeight: "h-[44px]",
+    actionWidth: "w-[44px]",
     actionPadding: "px-4",
-    // Lebih dekat ke icon
     actionIconPad: "px-7",
     dotSize: 6,
     dotGap: 8,
@@ -141,8 +143,8 @@ const sizes = {
     iconPx: 17,
     outer: "m-[3px]",
     actionHeight: "h-[48px]",
+    actionWidth: "w-[48px]",
     actionPadding: "px-5",
-    // Lebih dekat ke icon
     actionIconPad: "px-8",
     dotSize: 6,
     dotGap: 8,
@@ -384,6 +386,97 @@ function GlobalIcon({
 }
 
 /* ================================================================
+   GLOBAL ACTION ICON ONLY
+   ================================================================= */
+
+function GlobalActionIconOnly({
+  icon,
+  size,
+  color,
+  isHovered,
+}: {
+  icon: React.ReactNode;
+  size: (typeof sizes)[keyof typeof sizes];
+  color: "primary" | "secondary";
+  isHovered: boolean;
+}) {
+  return (
+    <span
+      className={cn(
+        `
+          relative
+          flex
+          shrink-0
+          items-center
+          justify-center
+          overflow-hidden
+        `,
+        size.actionHeight,
+        size.actionWidth,
+      )}
+    >
+      {/* ==========================================================
+          ICON UTAMA
+          ========================================================== */}
+
+      <motion.span
+        initial={false}
+        animate={{
+          x: isHovered ? "-150%" : "0%",
+          opacity: isHovered ? 0 : 1,
+        }}
+        transition={{
+          duration: 0.65,
+          ease: [0.76, 0, 0.24, 1],
+        }}
+        className={cn(
+          `
+            absolute
+            inset-0
+            flex
+            items-center
+            justify-center
+            will-change-transform
+          `,
+          colorVariants[color].text,
+        )}
+      >
+        {icon}
+      </motion.span>
+
+      {/* ==========================================================
+          ICON HOVER
+          ========================================================== */}
+
+      <motion.span
+        initial={false}
+        animate={{
+          x: isHovered ? "0%" : "150%",
+          opacity: isHovered ? 1 : 0,
+        }}
+        transition={{
+          duration: 0.65,
+          ease: [0.76, 0, 0.24, 1],
+        }}
+        className={cn(
+          `
+            absolute
+            inset-0
+            flex
+            items-center
+            justify-center
+            will-change-transform
+          `,
+          colorVariants[color].text,
+        )}
+      >
+        {icon}
+      </motion.span>
+    </span>
+  );
+}
+
+/* ================================================================
    GLOBAL ACTION CONTENT
    ================================================================= */
 
@@ -430,8 +523,6 @@ function GlobalActionContent({
     >
       {/* ==========================================================
           ICON UTAMA
-
-          Ukuran icon mengikuti size.iconSize.
           ========================================================== */}
 
       <span
@@ -460,8 +551,6 @@ function GlobalActionContent({
 
       {/* ==========================================================
           ICON HOVER
-
-          Ukuran icon sama persis dengan icon utama.
           ========================================================== */}
 
       <span
@@ -566,6 +655,18 @@ export default function NeoButton({
   const isDotsVertical = isHovered !== isOpen;
 
   /* ================================================================
+     LABEL DETECTION
+     ================================================================= */
+
+  const hasLabel =
+    buttonLabel !== null &&
+    buttonLabel !== undefined &&
+    buttonLabel !== false &&
+    (typeof buttonLabel !== "string" || buttonLabel.trim().length > 0);
+
+  const isGlobalActionIconOnly = isGlobalAction && icon && !hasLabel;
+
+  /* ================================================================
      CLICK
      ================================================================= */
 
@@ -593,13 +694,7 @@ export default function NeoButton({
     <span
       className={cn(
         "flex shrink-0 items-center justify-center",
-
-        /*
-         * Untuk global-action:
-         * wrapper icon mengikuti ukuran iconSize.
-         */
         isGlobalAction && currentSize.iconSize,
-
         isGlobalAction && iconClassName,
       )}
     >
@@ -706,14 +801,23 @@ export default function NeoButton({
 
         {isGlobalAction ? (
           icon ? (
-            <GlobalActionContent
-              icon={finalIcon}
-              iconPosition={iconPosition}
-              size={currentSize}
-              color={color}
-            >
-              {buttonLabel}
-            </GlobalActionContent>
+            isGlobalActionIconOnly ? (
+              <GlobalActionIconOnly
+                icon={finalIcon}
+                size={currentSize}
+                color={color}
+                isHovered={isHovered}
+              />
+            ) : (
+              <GlobalActionContent
+                icon={finalIcon}
+                iconPosition={iconPosition}
+                size={currentSize}
+                color={color}
+              >
+                {buttonLabel}
+              </GlobalActionContent>
+            )
           ) : (
             <span
               className={cn(

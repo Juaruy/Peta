@@ -19,6 +19,7 @@ const projects = [
       "From simple promo assets to full-blown creative concepts, we design visuals that capture your sound and energy. Think cover art, motion teasers, visualisers, carousels and more.",
     image: "/images/haerin1.jpg",
     tags: ["UI/UX Design", "Web Design", "Dashboard", "Design System"],
+    link: "/work/neo-tech",
   },
   {
     title: "Neo Tech",
