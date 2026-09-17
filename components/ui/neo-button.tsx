@@ -1,87 +1,118 @@
 "use client";
 
-import { useState } from "react";
-
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-
 import { Circle, MessagesSquare } from "lucide-react";
-
 import { cn } from "@/lib/utils";
+
+/* ================================================================
+   SIZE TYPES
+   ================================================================ */
+
+type ButtonSize = "sm" | "md" | "lg" | "xl";
+
+type ResponsiveSize = {
+  base: ButtonSize;
+  sm?: ButtonSize;
+  md?: ButtonSize;
+  lg?: ButtonSize;
+  xl?: ButtonSize;
+};
+
+type NeoButtonSize = ButtonSize | ResponsiveSize;
+
+/* ================================================================
+   PROPS
+   ================================================================ */
 
 type NeoButtonProps = {
   children: React.ReactNode;
 
   /* ================================================================
      VARIANT
-     ================================================================= */
-
+     ================================================================ */
   variant?: "global" | "global-action" | "menu";
 
   /* ================================================================
      SIZE
-     ================================================================= */
+     =================================================================
 
-  size?: "sm" | "md" | "lg" | "xl";
+     Fixed:
+     size="lg"
+
+     Responsive:
+     size={{
+       base: "sm",
+       lg: "lg",
+     }}
+
+     ================================================================ */
+  size?: NeoButtonSize;
 
   /* ================================================================
      PRESET COLORS
-     ================================================================= */
-
+     ================================================================ */
   color?: "primary" | "secondary";
 
   /* ================================================================
      CUSTOM COLORS
-     ================================================================= */
-
+     ================================================================ */
   bgColor?: string;
   textColor?: string;
   iconBgColor?: string;
 
   /* ================================================================
      ICON
-     ================================================================= */
-
+     ================================================================ */
   icon?: boolean;
   customIcon?: React.ReactNode;
 
   /* ================================================================
      ICON POSITION
-     ================================================================= */
-
-  iconPosition?: "left" | "right";
+     ================================================================ */
+  iconPosition?: "left" | "right" | "only";
 
   /* ================================================================
      GLOBAL ICON HOVER
-     ================================================================= */
-
+     ================================================================ */
   iconHover?: "side" | "up" | "none";
 
   /* ================================================================
      CUSTOM CLASS
-     ================================================================= */
-
+     ================================================================ */
   className?: string;
   iconClassName?: string;
 
   /* ================================================================
      EVENT
-     ================================================================= */
-
+     ================================================================ */
   onClick?: () => void;
 };
 
 /* ================================================================
    SIZES
+   =================================================================
 
-   Typography:
-   - text = SATU-SATUNYA sumber font-size
-   - font = SATU-SATUNYA sumber font-weight
+   text:
+   → font-size
 
-   Global-action:
-   - iconSize = ukuran icon
-   - actionHeight = tinggi button
-   - actionWidth = lebar button khusus icon-only
-   - actionIconPad = ruang horizontal text terhadap icon
+   font:
+   → font-weight
+
+   icon:
+   → ukuran container icon ketika button memiliki text
+
+   iconSize:
+   → ukuran glyph/icon
+
+   iconOnlyHeight / iconOnlyWidth:
+   → ukuran button ketika iconPosition="only"
+
+   actionHeight:
+   → ukuran global-action ketika memiliki text
+
+   actionWidth:
+   → ukuran khusus global-action
 
    ================================================================ */
 
@@ -89,15 +120,25 @@ const sizes = {
   sm: {
     text: "text-[14px]",
     font: "font-medium",
+
     textPadding: "pl-3 pr-2",
+
     icon: "h-[30px] w-[30px]",
     iconSize: "h-[14px] w-[14px]",
+
     iconPx: 14,
+
     outer: "m-[3px]",
+
+    iconOnlyHeight: "h-[36px]",
+    iconOnlyWidth: "w-[36px]",
+
     actionHeight: "h-[36px]",
     actionWidth: "w-[36px]",
+
     actionPadding: "px-3",
-    actionIconPad: "px-5",
+    actionIconPad: "px-[32px]",
+
     dotSize: 5,
     dotGap: 6,
   },
@@ -105,15 +146,25 @@ const sizes = {
   md: {
     text: "text-[14px]",
     font: "font-medium",
+
     textPadding: "pl-3.5 pr-2.5",
+
     icon: "h-[34px] w-[34px]",
     iconSize: "h-[15px] w-[15px]",
+
     iconPx: 15,
+
     outer: "m-[3px]",
+
+    iconOnlyHeight: "h-[40px]",
+    iconOnlyWidth: "w-[40px]",
+
     actionHeight: "h-[40px]",
     actionWidth: "w-[40px]",
+
     actionPadding: "px-3.5",
-    actionIconPad: "px-6",
+    actionIconPad: "px-[36px]",
+
     dotSize: 5,
     dotGap: 7,
   },
@@ -121,15 +172,25 @@ const sizes = {
   lg: {
     text: "text-[16px]",
     font: "font-medium",
+
     textPadding: "pl-4 pr-2.5",
+
     icon: "h-[38px] w-[38px]",
     iconSize: "h-[16px] w-[16px]",
+
     iconPx: 16,
+
     outer: "m-[3px]",
+
+    iconOnlyHeight: "h-[44px]",
+    iconOnlyWidth: "w-[44px]",
+
     actionHeight: "h-[44px]",
     actionWidth: "w-[44px]",
+
     actionPadding: "px-4",
     actionIconPad: "px-7",
+
     dotSize: 6,
     dotGap: 8,
   },
@@ -137,23 +198,109 @@ const sizes = {
   xl: {
     text: "text-[16px]",
     font: "font-medium",
+
     textPadding: "pl-4 pr-2.5",
+
     icon: "h-[42px] w-[42px]",
     iconSize: "h-[17px] w-[17px]",
+
     iconPx: 17,
+
     outer: "m-[3px]",
+
+    iconOnlyHeight: "h-[48px]",
+    iconOnlyWidth: "w-[48px]",
+
     actionHeight: "h-[48px]",
     actionWidth: "w-[48px]",
+
     actionPadding: "px-5",
     actionIconPad: "px-8",
+
     dotSize: 6,
     dotGap: 8,
   },
 };
 
 /* ================================================================
+   RESPONSIVE SIZE HOOK
+   =================================================================
+
+   Tailwind default breakpoints:
+
+   sm → 640px
+   md → 768px
+   lg → 1024px
+   xl → 1280px
+
+   Contoh:
+
+   size={{
+     base: "sm",
+     lg: "lg",
+   }}
+
+   Mobile  → sm
+   ≥1024px → lg
+
+   ================================================================ */
+
+function useResponsiveSize(size: NeoButtonSize): ButtonSize {
+  const getBaseSize = (): ButtonSize => {
+    if (typeof size === "string") {
+      return size;
+    }
+
+    return size.base;
+  };
+
+  const [currentSize, setCurrentSize] = useState<ButtonSize>(getBaseSize);
+
+  useEffect(() => {
+    if (typeof size === "string") {
+      setCurrentSize(size);
+      return;
+    }
+
+    const updateSize = () => {
+      const width = window.innerWidth;
+
+      let resolvedSize = size.base;
+
+      if (width >= 640 && size.sm) {
+        resolvedSize = size.sm;
+      }
+
+      if (width >= 768 && size.md) {
+        resolvedSize = size.md;
+      }
+
+      if (width >= 1024 && size.lg) {
+        resolvedSize = size.lg;
+      }
+
+      if (width >= 1280 && size.xl) {
+        resolvedSize = size.xl;
+      }
+
+      setCurrentSize(resolvedSize);
+    };
+
+    updateSize();
+
+    window.addEventListener("resize", updateSize);
+
+    return () => {
+      window.removeEventListener("resize", updateSize);
+    };
+  }, [size]);
+
+  return currentSize;
+}
+
+/* ================================================================
    MENU ITEMS
-   ================================================================= */
+   ================================================================ */
 
 const menuItems = [
   {
@@ -172,11 +319,11 @@ const menuItems = [
 
 /* ================================================================
    COLOR VARIANTS
-   ================================================================= */
+   ================================================================ */
 
 const colorVariants = {
   primary: {
-    bg: "bg-neutral-200",
+    bg: "bg-neutral-50",
     text: "text-black",
     iconBg: "bg-neutral-100",
     washBg: "bg-neutral-900",
@@ -194,7 +341,7 @@ const colorVariants = {
 
 /* ================================================================
    MENU DOT ICON
-   ================================================================= */
+   ================================================================ */
 
 function MenuDotsIcon({
   size,
@@ -205,7 +352,6 @@ function MenuDotsIcon({
 }) {
   const dotSize = size.dotSize;
   const gap = size.dotGap;
-
   const offset = dotSize / 2 + gap / 5;
 
   return (
@@ -234,7 +380,6 @@ function MenuDotsIcon({
             x: -offset,
             y: 0,
           },
-
           open: {
             x: 0,
             y: -offset,
@@ -266,7 +411,6 @@ function MenuDotsIcon({
             x: offset,
             y: 0,
           },
-
           open: {
             x: 0,
             y: offset,
@@ -291,7 +435,7 @@ function MenuDotsIcon({
 
 /* ================================================================
    GLOBAL ICON
-   ================================================================= */
+   ================================================================ */
 
 function GlobalIcon({
   icon,
@@ -387,7 +531,7 @@ function GlobalIcon({
 
 /* ================================================================
    GLOBAL ACTION ICON ONLY
-   ================================================================= */
+   ================================================================ */
 
 function GlobalActionIconOnly({
   icon,
@@ -411,8 +555,8 @@ function GlobalActionIconOnly({
           justify-center
           overflow-hidden
         `,
-        size.actionHeight,
-        size.actionWidth,
+        size.iconOnlyHeight,
+        size.iconOnlyWidth,
       )}
     >
       {/* ==========================================================
@@ -478,7 +622,7 @@ function GlobalActionIconOnly({
 
 /* ================================================================
    GLOBAL ACTION CONTENT
-   ================================================================= */
+   ================================================================ */
 
 function GlobalActionContent({
   icon,
@@ -534,11 +678,9 @@ function GlobalActionContent({
             shrink-0
             items-center
             justify-center
-
             transition-[left,right,transform,opacity]
             duration-[650ms]
             ease-[cubic-bezier(0.76,0,0.24,1)]
-
             will-change-[left,right,transform]
           `,
           size.iconSize,
@@ -562,11 +704,9 @@ function GlobalActionContent({
             shrink-0
             items-center
             justify-center
-
             transition-[left,right,transform,opacity]
             duration-[650ms]
             ease-[cubic-bezier(0.76,0,0.24,1)]
-
             will-change-[left,right,transform]
           `,
           size.iconSize,
@@ -592,11 +732,9 @@ function GlobalActionContent({
             whitespace-nowrap
             leading-none
             tracking-[-0.03em]
-
             transition-transform
             duration-[650ms]
             ease-[cubic-bezier(0.76,0,0.24,1)]
-
             will-change-transform
           `,
           size.text,
@@ -614,31 +752,22 @@ function GlobalActionContent({
 
 /* ================================================================
    NEO BUTTON
-   ================================================================= */
+   ================================================================ */
 
 export default function NeoButton({
   children,
-
   variant = "global",
-
   size = "lg",
-
   color = "secondary",
-
   bgColor,
   textColor,
   iconBgColor,
-
   icon = true,
   customIcon,
-
   iconPosition = "right",
-
   iconHover = "side",
-
   className,
   iconClassName,
-
   onClick,
 }: NeoButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -647,16 +776,22 @@ export default function NeoButton({
   const isMenu = variant === "menu";
   const isGlobalAction = variant === "global-action";
 
+  /* ================================================================
+     RESPONSIVE SIZE
+     ================================================================ */
+
+  const resolvedSize = useResponsiveSize(size);
+  const currentSize = sizes[resolvedSize];
+
   const buttonLabel = isMenu && isOpen ? "Close" : children;
 
-  const currentSize = sizes[size];
   const currentColor = colorVariants[color];
 
   const isDotsVertical = isHovered !== isOpen;
 
   /* ================================================================
      LABEL DETECTION
-     ================================================================= */
+     ================================================================ */
 
   const hasLabel =
     buttonLabel !== null &&
@@ -664,11 +799,16 @@ export default function NeoButton({
     buttonLabel !== false &&
     (typeof buttonLabel !== "string" || buttonLabel.trim().length > 0);
 
-  const isGlobalActionIconOnly = isGlobalAction && icon && !hasLabel;
+  /* ================================================================
+     ICON ONLY
+     ================================================================ */
+
+  const isIconOnly =
+    iconPosition === "only" || (isGlobalAction && icon && !hasLabel);
 
   /* ================================================================
      CLICK
-     ================================================================= */
+     ================================================================ */
 
   const handleClick = () => {
     if (isMenu) {
@@ -680,7 +820,7 @@ export default function NeoButton({
 
   /* ================================================================
      DEFAULT GLOBAL ICON
-     ================================================================= */
+     ================================================================ */
 
   const defaultGlobalIcon = (
     <MessagesSquare strokeWidth={2} className={currentSize.iconSize} />
@@ -688,7 +828,7 @@ export default function NeoButton({
 
   /* ================================================================
      CUSTOM ICON
-     ================================================================= */
+     ================================================================ */
 
   const finalIcon = customIcon ? (
     <span
@@ -706,7 +846,7 @@ export default function NeoButton({
 
   /* ================================================================
      STANDARD ICON ELEMENT
-     ================================================================= */
+     ================================================================ */
 
   const iconElement =
     icon && !isGlobalAction ? (
@@ -742,11 +882,48 @@ export default function NeoButton({
     ) : null;
 
   /* ================================================================
+     ICON ONLY ELEMENT
+     ================================================================ */
+
+  const iconOnlyElement =
+    icon && !isGlobalAction && isIconOnly ? (
+      <span
+        className={cn(
+          `
+            flex
+            shrink-0
+            items-center
+            justify-center
+          `,
+          currentSize.iconOnlyHeight,
+          currentSize.iconOnlyWidth,
+          iconClassName,
+        )}
+      >
+        {isMenu ? (
+          <MenuDotsIcon size={currentSize} isOpen={isDotsVertical} />
+        ) : (
+          <GlobalIcon
+            icon={finalIcon}
+            direction={iconHover}
+            isHovered={isHovered}
+          />
+        )}
+      </span>
+    ) : null;
+
+  /* ================================================================
      RETURN
-     ================================================================= */
+     ================================================================ */
 
   return (
-    <div className="relative w-fit">
+    <div
+      className={cn(
+        "relative w-fit",
+        isGlobalAction && isIconOnly && currentSize.iconOnlyHeight,
+        isGlobalAction && isIconOnly && currentSize.iconOnlyWidth,
+      )}
+    >
       <motion.button
         initial="rest"
         whileHover="hover"
@@ -790,6 +967,8 @@ export default function NeoButton({
             font-inherit
             will-change-transform
           `,
+          isGlobalAction && isIconOnly && currentSize.iconOnlyHeight,
+          isGlobalAction && isIconOnly && currentSize.iconOnlyWidth,
           currentColor.bg,
           currentColor.text,
           className,
@@ -801,7 +980,7 @@ export default function NeoButton({
 
         {isGlobalAction ? (
           icon ? (
-            isGlobalActionIconOnly ? (
+            isIconOnly ? (
               <GlobalActionIconOnly
                 icon={finalIcon}
                 size={currentSize}
@@ -842,6 +1021,12 @@ export default function NeoButton({
               {buttonLabel}
             </span>
           )
+        ) : isIconOnly ? (
+          /* ==========================================================
+             STANDARD ICON ONLY
+             ========================================================== */
+
+          iconOnlyElement
         ) : (
           <>
             {/* ======================================================
@@ -929,7 +1114,7 @@ export default function NeoButton({
               z-40
               w-[260px]
               rounded-[32px]
-              bg-neutral-200
+              bg-neutral-50
               p-6
               shadow-2xl
               sm:w-[320px]

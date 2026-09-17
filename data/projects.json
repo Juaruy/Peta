@@ -4,7 +4,13 @@
     "category": "Combat Sports Event Platform",
     "year": "2025",
 
-    "description": "Lorem ipsum dolor sit amet, consectetur exercitation esse magna cillum eu pariatur. In minim velit labore ut elit veniam aliqua sunt nisi ea. Ad proident cupidatat reprehenderit eiusmod ea ut nisi non. Qui proident enim est fugiat ex quis ad sint ex cupidatat occaecat. Incididunt eiusmod reprehenderit enim id consectetur est nostrud.",
+    "theme": {
+      "background": "#240303",
+      "backgroundOpacity": 1,
+      "logo": "#fa2a25"
+    },
+
+    "description": "A combat sports event platform designed to manage fighters, matches, schedules, tickets, merchandise, and event operations across mobile and desktop experiences.",
 
     "services": [
       "UI/UX Design",
@@ -57,7 +63,13 @@
     "category": "Brand Experience",
     "year": "2025",
 
-    "description": "Lorem ipsum dolor sit amet, consectetur exercitation esse magna cillum eu pariatur. In minim velit labore ut elit veniam aliqua sunt nisi ea. Ad proident cupidatat reprehenderit eiusmod ea ut nisi non. Qui proident enim est fugiat ex quis ad sint ex cupidatat occaecat. Incididunt eiusmod reprehenderit enim id consectetur est nostrud.",
+    "theme": {
+      "background": "#d1e2ff",
+      "backgroundOpacity": 1,
+      "logo": "#2B499A"
+    },
+
+    "description": "A digital experience exploring a bold visual direction with a focus on interaction, interface systems, and a cohesive brand experience.",
 
     "services": [
       "UI/UX Design",

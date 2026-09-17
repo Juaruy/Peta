@@ -1683,7 +1683,7 @@ export default function MusicPlayer() {
       <NeoButton
         variant="global"
         color="secondary"
-        size="xl"
+        size="lg"
         iconHover="none"
         customIcon={<MusicWaveIcon isPlaying={isPlaying} />}
         className="

@@ -6,14 +6,21 @@ export type ProjectGalleryItem = {
   size: "small" | "medium" | "large";
 };
 
+export type ProjectTheme = {
+  background: string;
+  backgroundOpacity: number;
+  logo: string;
+};
+
 export type Project = {
   title: string;
   category: string;
   year: string;
+
+  theme: ProjectTheme;
+
   description: string;
-
   link: string;
-
   services: string[];
   role: string;
   platform: string;

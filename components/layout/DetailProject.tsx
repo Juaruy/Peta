@@ -1,14 +1,16 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 import Image from "next/image";
+
 import { useRouter } from "next/navigation";
+
 import { Bot } from "lucide-react";
 
 import type { Project } from "@/data/projects";
 
 import NeoButton from "../ui/neo-button";
-
-import { FlowButton } from "../ui/flow-button";
 
 type DetailProjectProps = {
   project: Project;
@@ -16,6 +18,55 @@ type DetailProjectProps = {
 
 export default function DetailProject({ project }: DetailProjectProps) {
   const router = useRouter();
+
+  const [heroIsLight, setHeroIsLight] = useState(false);
+
+  // ========================================================================
+  // HERO COLOR EFFECT
+  // ========================================================================
+
+  useEffect(() => {
+    const heroImage = project.gallery?.[0]?.src;
+
+    if (!heroImage) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const image = new window.Image();
+
+    image.crossOrigin = "anonymous";
+    image.src = heroImage;
+
+    image.onload = () => {
+      if (cancelled) {
+        return;
+      }
+
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext("2d");
+
+      if (!context) {
+        return;
+      }
+
+      canvas.width = 1;
+      canvas.height = 1;
+
+      context.drawImage(image, 0, 0, 1, 1);
+
+      const [r, g, b] = context.getImageData(0, 0, 1, 1).data;
+
+      const luminance = (r * 299 + g * 587 + b * 114) / 1000;
+
+      setHeroIsLight(luminance > 155);
+    };
+
+    return () => {
+      cancelled = true;
+    };
+  }, [project]);
 
   return (
     <section
@@ -37,7 +88,6 @@ export default function DetailProject({ project }: DetailProjectProps) {
           flex
           w-max
           items-center
-          text-white
           max-md:w-full
           max-md:flex-col
           max-md:items-stretch
@@ -48,6 +98,7 @@ export default function DetailProject({ project }: DetailProjectProps) {
         {/* =====================================================
             HERO
         ===================================================== */}
+
         <div
           className="
             project-hero
@@ -80,8 +131,9 @@ export default function DetailProject({ project }: DetailProjectProps) {
             {/* =================================================
                 CATEGORY + YEAR
             ================================================= */}
+
             <div
-              className="
+              className={`
                 mb-8
                 flex
                 items-center
@@ -89,97 +141,137 @@ export default function DetailProject({ project }: DetailProjectProps) {
                 text-[9px]
                 uppercase
                 tracking-[0.15em]
-                text-white/40
+                transition-colors
+                duration-300
+                ${heroIsLight ? "text-black/40" : "text-white/40"}
                 md:text-[10px]
                 max-md:mb-6
                 max-md:text-[8px]
-              "
+              `}
             >
               <span>{project.category}</span>
-              <span className="h-px w-7 bg-white/20" />
+
+              <span
+                className={`
+                  h-px
+                  w-7
+                  transition-colors
+                  duration-300
+                  ${heroIsLight ? "bg-black/20" : "bg-white/20"}
+                `}
+              />
+
               <span>{project.year}</span>
             </div>
 
             {/* =================================================
                 TITLE
             ================================================= */}
+
             <h1
-              className="
+              className={`
                 font-aeonik
                 text-6xl
-                font-medium
+                font-regular
                 leading-[0.8]
+                transition-colors
+                duration-300
+                ${heroIsLight ? "text-black" : "text-white"}
                 max-md:text-5xl
                 max-md:leading-[0.85]
-              "
+              `}
             >
               {project.title}
             </h1>
 
             {/* =================================================
-                DESCRIPTION + META
+                CONTENT WRAPPER
+
+                DESKTOP:
+                Description | Meta
+                CTA         | Meta
+
+                MOBILE:
+                Description
+                Meta
+                CTA
             ================================================= */}
+
             <div
               className="
                 mt-10
-                flex
+                grid
                 max-w-md
-                gap-12
-                max-md:mt-8
+                grid-cols-[minmax(0,1fr)_auto]
+                items-start
+                gap-x-12
+                gap-y-8
+                max-md:flex
                 max-md:flex-col
                 max-md:gap-8
+                max-md:mt-8
               "
             >
-              {/* DESCRIPTION */}
-              <div className="flex flex-col items-start">
+              {/* =================================================
+                  DESCRIPTION
+              ================================================= */}
+
+              <div
+                className="
+                  min-w-0
+                  max-md:order-1
+                "
+              >
                 <p
-                  className="
-                    text-[12px]
+                  className={`
+                    text-xs
                     leading-[1.7]
-                    text-white/50
-                    md:text-sm
+                    transition-colors
+                    duration-300
+                    ${heroIsLight ? "text-black/50" : "text-white/50"}
+                    md:text-base
                     max-md:text-[11px]
                     max-md:leading-[1.7]
-                  "
+                  `}
                 >
                   {project.description}
                 </p>
-
-                {/* CTA */}
-                <NeoButton
-                  variant="global-action"
-                  color="primary"
-                  iconPosition="left"
-                  customIcon={<Bot size={17} />}
-                  size="xl"
-                  className="mt-8"
-                  onClick={() => router.push(project.link)}
-                >
-                  Launch Project
-                </NeoButton>
               </div>
 
-              {/* META */}
+              {/* =================================================
+                  META
+              ================================================= */}
+
               <div
                 className="
+                  row-span-2
                   flex
                   shrink-0
                   flex-col
                   gap-8
-                  max-md:gap-6
+                  max-md:order-2
+                  max-md:flex-row
+                  max-md:items-start
+                  max-md:gap-12
                 "
               >
-                {/* SERVICES */}
+                {/* =================================================
+                    SERVICES
+                ================================================= */}
+
                 <div>
                   <span
-                    className="
+                    className={`
                       mb-3
                       block
                       text-[9px]
                       uppercase
                       tracking-[0.15em]
-                      text-white/30
-                    "
+                      transition-colors
+                      duration-300
+                      ${heroIsLight ? "text-black/30" : "text-white/30"}
+                      md:text-xs
+                    `}
                   >
                     Services
                   </span>
@@ -188,12 +280,14 @@ export default function DetailProject({ project }: DetailProjectProps) {
                     {project.services.map((service) => (
                       <p
                         key={service}
-                        className="
+                        className={`
                           text-[11px]
-                          text-white/65
+                          transition-colors
+                          duration-300
+                          ${heroIsLight ? "text-black/65" : "text-white/65"}
                           md:text-xs
                           max-md:text-[10px]
-                        "
+                        `}
                       >
                         {service}
                       </p>
@@ -201,31 +295,63 @@ export default function DetailProject({ project }: DetailProjectProps) {
                   </div>
                 </div>
 
-                {/* PLATFORM */}
+                {/* =================================================
+                    PLATFORM
+                ================================================= */}
+
                 <div>
                   <span
-                    className="
+                    className={`
                       mb-3
                       block
                       text-[9px]
                       uppercase
                       tracking-[0.15em]
-                      text-white/30
-                    "
+                      transition-colors
+                      duration-300
+                      ${heroIsLight ? "text-black/30" : "text-white/30"}
+                      md:text-xs
+                    `}
                   >
                     Platform
                   </span>
 
                   <p
-                    className="
+                    className={`
                       text-[11px]
-                      text-white/65
+                      transition-colors
+                      duration-300
+                      ${heroIsLight ? "text-black/65" : "text-white/65"}
                       md:text-xs
                       max-md:text-[10px]
-                    "
+                    `}
                   >
                     {project.platform}
                   </p>
+                </div>
+              </div>
+
+              {/* =================================================
+                  CTA
+              ================================================= */}
+
+              <div className="relative max-md:order-3">
+                <div className="flex justify-start">
+                  <NeoButton
+                    variant="global-action"
+                    color="primary"
+                    iconPosition="left"
+                    customIcon={<Bot size={17} />}
+                    className="mt-0"
+                    size={{
+                      base: "sm",
+                      md: "md",
+                      lg: "lg",
+                    }}
+                    onClick={() => router.push(project.link)}
+                  >
+                    Launch Project
+                  </NeoButton>
                 </div>
               </div>
             </div>
@@ -235,6 +361,7 @@ export default function DetailProject({ project }: DetailProjectProps) {
         {/* =====================================================
             GALLERY
         ===================================================== */}
+
         {project.gallery.map((image, index) => {
           const size =
             image.size === "large"
@@ -304,6 +431,7 @@ export default function DetailProject({ project }: DetailProjectProps) {
         {/* =====================================================
             END SPACING
         ===================================================== */}
+
         <div
           className="
             h-full
