@@ -4,6 +4,8 @@
     "category": "Combat Sports Event Platform",
     "year": "2025",
 
+    "heroTheme": "dark",
+
     "theme": {
       "background": "#240303",
       "backgroundOpacity": 1,
@@ -62,6 +64,8 @@
     "title": "Neo Tech",
     "category": "Brand Experience",
     "year": "2025",
+
+    "heroTheme": "light",
 
     "theme": {
       "background": "#d1e2ff",

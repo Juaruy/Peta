@@ -17,6 +17,9 @@ export type Project = {
   category: string;
   year: string;
 
+  // Determines the text color system used by the project hero.
+  heroTheme: "light" | "dark";
+
   theme: ProjectTheme;
 
   description: string;

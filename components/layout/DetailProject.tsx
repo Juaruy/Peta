@@ -1,7 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
 import Image from "next/image";
 
 import { useRouter } from "next/navigation";
@@ -19,54 +17,11 @@ type DetailProjectProps = {
 export default function DetailProject({ project }: DetailProjectProps) {
   const router = useRouter();
 
-  const [heroIsLight, setHeroIsLight] = useState(false);
-
   // ========================================================================
-  // HERO COLOR EFFECT
+  // HERO THEME
   // ========================================================================
 
-  useEffect(() => {
-    const heroImage = project.gallery?.[0]?.src;
-
-    if (!heroImage) {
-      return;
-    }
-
-    let cancelled = false;
-
-    const image = new window.Image();
-
-    image.crossOrigin = "anonymous";
-    image.src = heroImage;
-
-    image.onload = () => {
-      if (cancelled) {
-        return;
-      }
-
-      const canvas = document.createElement("canvas");
-      const context = canvas.getContext("2d");
-
-      if (!context) {
-        return;
-      }
-
-      canvas.width = 1;
-      canvas.height = 1;
-
-      context.drawImage(image, 0, 0, 1, 1);
-
-      const [r, g, b] = context.getImageData(0, 0, 1, 1).data;
-
-      const luminance = (r * 299 + g * 587 + b * 114) / 1000;
-
-      setHeroIsLight(luminance > 155);
-    };
-
-    return () => {
-      cancelled = true;
-    };
-  }, [project]);
+  const heroIsLight = project.heroTheme === "light";
 
   return (
     <section
