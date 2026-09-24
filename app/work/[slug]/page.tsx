@@ -26,18 +26,14 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
 
   const project = projects[slug];
 
+  const nextProjectSlug = project?.nextProject?.slug ?? null;
+  const nextProject = nextProjectSlug ? projects[nextProjectSlug] : null;
+
   const horizontalSectionRef = useRef<HTMLElement>(null);
   const horizontalTrackRef = useRef<HTMLDivElement>(null);
   const nextProjectRef = useRef<HTMLElement>(null);
 
   const isNavigatingRef = useRef(false);
-
-  if (!project) return null;
-
-  const nextProjectSlug = project.nextProject.slug;
-  const nextProject = projects[nextProjectSlug];
-
-  if (!nextProject) return null;
 
   // ============================================================
   // RESET SCROLL
@@ -80,14 +76,26 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
   }, [slug, lenis]);
 
   // ============================================================
-  // DETAIL PROJECT — HORIZONTAL SCROLL
+  // STACK — DETAIL (HORIZONTAL) + NEXT PROJECT (STACKED SCROLL)
+  // ============================================================
+  //
+  // Satu pin untuk seluruh stack:
+  //
+  //   0 ──────────── D ────────── D+R ──────────── D+R+P ──> scroll
+  //      horizontal     next cover detail        panel 30→100%
+  //
+  // Detail tetap ter-pin (stays behind) sementara NextProject
+  // naik dari bawah menutupinya, lalu panel melebar dan me-route
+  // ke project berikutnya.
   // ============================================================
 
   useLayoutEffect(() => {
     const section = horizontalSectionRef.current;
     const track = horizontalTrackRef.current;
+    const nextRoot = nextProjectRef.current;
 
-    if (!section || !track) return;
+    if (!section || !track || !nextRoot) return;
+    if (!project || !nextProject || !nextProjectSlug) return;
 
     const isMobile = window.matchMedia("(max-width: 767px)").matches;
 
@@ -106,7 +114,80 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
         ".project-gallery-item",
       );
 
-      if (!heroContent) return;
+      const panel = nextRoot.querySelector<HTMLElement>(
+        ".next-project-panel",
+      );
+
+      const title = nextRoot.querySelector<HTMLElement>(
+        ".next-project-title",
+      );
+
+      const category = nextRoot.querySelector<HTMLElement>(
+        ".next-project-category",
+      );
+
+      const titleGroup = nextRoot.querySelector<HTMLElement>(
+        ".next-project-title-group",
+      );
+
+      const heroTitle = section.querySelector<HTMLElement>(
+        ".project-hero h1",
+      );
+
+      if (
+        !heroContent ||
+        !panel ||
+        !title ||
+        !category ||
+        !titleGroup ||
+        !heroTitle
+      ) {
+        return;
+      }
+
+      // ----------------------------------------------------------
+      // DISTANCES
+      // ----------------------------------------------------------
+
+      const getDistance = () =>
+        Math.max(0, track.scrollWidth - window.innerWidth);
+
+      const getRise = () => window.innerHeight;
+
+      const getPanel = () => window.innerHeight * 0.7;
+
+      const distance = getDistance();
+      const rise = getRise();
+      const panelDistance = getPanel();
+
+      // ----------------------------------------------------------
+      // HERO TYPOGRAPHY — tujuan transform title
+      // ----------------------------------------------------------
+
+      const heroStyle = window.getComputedStyle(heroTitle);
+
+      const heroFontSize = parseFloat(heroStyle.fontSize);
+
+      const heroFontWeight = heroStyle.fontWeight;
+
+      const heroFontFamily = heroStyle.fontFamily;
+
+      const heroLetterSpacing =
+        heroStyle.letterSpacing === "normal"
+          ? 0
+          : parseFloat(heroStyle.letterSpacing);
+
+      // ----------------------------------------------------------
+      // DESTINATION COLORS
+      // ----------------------------------------------------------
+
+      const destinationTitleColor =
+        nextProject.heroTheme === "light" ? "#000000" : "#ffffff";
+
+      const destinationCategoryColor =
+        nextProject.heroTheme === "light"
+          ? "rgba(0, 0, 0, 0.4)"
+          : "rgba(255, 255, 255, 0.4)";
 
       // ----------------------------------------------------------
       // INITIAL STATES
@@ -124,45 +205,106 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
         y: 18,
       });
 
+      if (firstGallery) {
+        gsap.set(firstGallery, {
+          zIndex: 20,
+        });
+      }
+
+      gsap.set(nextRoot, {
+        yPercent: 100,
+      });
+
+      gsap.set(panel, {
+        width: "30%",
+      });
+
+      gsap.set(title, {
+        x: 0,
+        y: 0,
+        color: "#111111",
+      });
+
+      gsap.set(category, {
+        color: "rgba(17, 17, 17, 0.4)",
+      });
+
       // ----------------------------------------------------------
-      // HORIZONTAL TRACK
+      // STACKED TIMELINE — satu pin untuk semua fase
       // ----------------------------------------------------------
 
-      const getDistance = () =>
-        Math.max(0, track.scrollWidth - window.innerWidth);
+      const panelStart = distance + rise;
 
-      const horizontalTween = gsap.to(track, {
-        x: () => -getDistance(),
-
-        ease: "none",
-
+      const transition = gsap.timeline({
         scrollTrigger: {
           trigger: section,
 
           start: "top top",
 
-          end: () => `+=${getDistance()}`,
+          end: () => "+=" + (getDistance() + getRise() + getPanel()),
 
           pin: true,
 
-          scrub: 1,
+          scrub: 0.6,
 
           anticipatePin: 1,
 
           invalidateOnRefresh: true,
+
+          onScrubComplete: (self) => {
+            const panelRect = panel.getBoundingClientRect();
+
+            const viewportWidth = window.innerWidth;
+
+            const widthTolerance = Math.ceil(window.devicePixelRatio * 2);
+
+            if (self.progress < 0.998) {
+              return;
+            }
+
+            if (isNavigatingRef.current) {
+              return;
+            }
+
+            if (panelRect.width < viewportWidth - widthTolerance) {
+              return;
+            }
+
+            isNavigatingRef.current = true;
+
+            const groupRect = titleGroup.getBoundingClientRect();
+
+            sessionStorage.setItem(
+              "next-project-title-position",
+              JSON.stringify({
+                top: groupRect.top,
+              }),
+            );
+
+            router.push(`/work/${nextProjectSlug}`);
+          },
         },
       });
 
       // ----------------------------------------------------------
-      // HERO TEXT
+      // PHASE 0 — HORIZONTAL SCROLL
       // ----------------------------------------------------------
-      //
+
       // Text mulai fade lebih awal,
       // tetapi pergerakannya dibuat lebih panjang/smooth.
-      //
 
       const heroFadeStart = 0.02;
       const heroFadeEnd = 0.15;
+
+      const horizontalTween = transition.to(
+        track,
+        {
+          x: () => -getDistance(),
+          ease: "none",
+          duration: distance,
+        },
+        0,
+      );
 
       const updateHeroAnimation = () => {
         const progress = horizontalTween.progress();
@@ -185,20 +327,78 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
 
       horizontalTween.eventCallback("onUpdate", updateHeroAnimation);
 
-      if (firstGallery) {
-        gsap.set(firstGallery, {
-          zIndex: 20,
-        });
-      }
-
       updateHeroAnimation();
 
       // ----------------------------------------------------------
-      // GALLERY ENTRY
+      // PHASE 1 — NEXT PROJECT COVER (naik dari bawah)
       // ----------------------------------------------------------
-      //
-      // Image sengaja dibuat lebih lambat.
-      //
+
+      transition.fromTo(
+        nextRoot,
+        {
+          yPercent: 100,
+        },
+        {
+          yPercent: 0,
+          ease: "none",
+          duration: rise,
+        },
+        distance,
+      );
+
+      // ----------------------------------------------------------
+      // PHASE 2 — PANEL 30% → 100%
+      // ----------------------------------------------------------
+
+      transition.to(
+        panel,
+        {
+          width: "100%",
+          backgroundColor: nextProject.theme.background,
+          ease: "none",
+          duration: panelDistance,
+        },
+        panelStart,
+      );
+
+      // Warna teks ikut panel (lockstep).
+      transition.to(
+        title,
+        {
+          color: destinationTitleColor,
+          ease: "none",
+          duration: panelDistance,
+        },
+        panelStart,
+      );
+
+      transition.to(
+        category,
+        {
+          color: destinationCategoryColor,
+          ease: "none",
+          duration: panelDistance,
+        },
+        panelStart,
+      );
+
+      // Title transform selesai lebih cepat daripada panel.
+      transition.to(
+        title,
+        {
+          fontSize: heroFontSize,
+          fontWeight: heroFontWeight,
+          fontFamily: heroFontFamily,
+          letterSpacing: heroLetterSpacing,
+          ease: "power2.out",
+          duration: panelDistance * 0.62,
+        },
+        panelStart,
+      );
+
+      // ----------------------------------------------------------
+      // GALLERY ENTRY (one-shot, tidak di-scrub)
+      // ----------------------------------------------------------
 
       const galleryEntry = gsap.timeline({
         delay: 0.28,
@@ -224,7 +424,7 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
     }, section);
 
     return () => ctx.revert();
-  }, [slug]);
+  }, [slug, project, nextProject, nextProjectSlug, router]);
 
   // ============================================================
   // NEXT PROJECT → DETAIL PROJECT HANDOFF
@@ -433,252 +633,9 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
 
       timeline?.kill();
     };
-  }, [slug]);
+  }, [slug, project]);
 
-  // ============================================================
-  // NEXT PROJECT PREVIEW
-  // ============================================================
-
-  useLayoutEffect(() => {
-    const section = nextProjectRef.current;
-
-    if (!section) return;
-
-    const isMobile = window.matchMedia("(max-width: 767px)").matches;
-
-    if (isMobile) return;
-
-    const ctx = gsap.context(() => {
-      const panel = section.querySelector<HTMLElement>(".next-project-panel");
-
-      const title = section.querySelector<HTMLElement>(".next-project-title");
-
-      const category = section.querySelector<HTMLElement>(
-        ".next-project-category",
-      );
-
-      const titleGroup = section.querySelector<HTMLElement>(
-        ".next-project-title-group",
-      );
-
-      const heroTitle =
-        horizontalSectionRef.current?.querySelector<HTMLElement>(
-          ".project-hero h1",
-        );
-
-      if (!panel || !title || !category || !titleGroup || !heroTitle) {
-        return;
-      }
-
-      // ----------------------------------------------------------
-      // HERO TYPOGRAPHY
-      // ----------------------------------------------------------
-
-      const heroStyle = window.getComputedStyle(heroTitle);
-
-      const heroFontSize = parseFloat(heroStyle.fontSize);
-
-      const heroFontWeight = heroStyle.fontWeight;
-
-      const heroFontFamily = heroStyle.fontFamily;
-
-      const heroLetterSpacing =
-        heroStyle.letterSpacing === "normal"
-          ? 0
-          : parseFloat(heroStyle.letterSpacing);
-
-      // ----------------------------------------------------------
-      // DESTINATION COLORS
-      // ----------------------------------------------------------
-
-      const destinationTitleColor =
-        nextProject.heroTheme === "light" ? "#000000" : "#ffffff";
-
-      const destinationCategoryColor =
-        nextProject.heroTheme === "light"
-          ? "rgba(0, 0, 0, 0.4)"
-          : "rgba(255, 255, 255, 0.4)";
-
-      // ----------------------------------------------------------
-      // INITIAL STATE
-      // ----------------------------------------------------------
-
-      gsap.set(panel, {
-        width: "30%",
-      });
-
-      gsap.set(title, {
-        x: 0,
-        y: 0,
-        color: "#111111",
-      });
-
-      gsap.set(category, {
-        color: "rgba(17, 17, 17, 0.4)",
-      });
-
-      // ----------------------------------------------------------
-      // TRANSITION
-      // ----------------------------------------------------------
-
-      const transition = gsap.timeline({
-        scrollTrigger: {
-          trigger: section,
-
-          start: "top top",
-
-          end: "+=70%",
-
-          pin: true,
-
-          scrub: 0.6,
-
-          anticipatePin: 1,
-
-          invalidateOnRefresh: true,
-
-          onUpdate: (self) => {
-            const progress = self.progress;
-
-            const titleColor = gsap.utils.interpolate(
-              "#111111",
-              destinationTitleColor,
-              progress,
-            );
-
-            const categoryColor = gsap.utils.interpolate(
-              "rgba(17, 17, 17, 0.4)",
-              destinationCategoryColor,
-              progress,
-            );
-
-            gsap.set(title, {
-              color: titleColor,
-            });
-
-            gsap.set(category, {
-              color: categoryColor,
-            });
-          },
-
-          onScrubComplete: (self) => {
-            if (self.progress < 0.9995) {
-              return;
-            }
-
-            if (isNavigatingRef.current) {
-              return;
-            }
-
-            const panelRect = panel.getBoundingClientRect();
-
-            const viewportWidth = window.innerWidth;
-
-            if (panelRect.width < viewportWidth - 2) {
-              return;
-            }
-
-            isNavigatingRef.current = true;
-
-            const groupRect = titleGroup.getBoundingClientRect();
-
-            sessionStorage.setItem(
-              "next-project-title-position",
-              JSON.stringify({
-                top: groupRect.top,
-              }),
-            );
-
-            router.push(`/work/${nextProjectSlug}`);
-          },
-        },
-      });
-
-      // ----------------------------------------------------------
-      // PANEL
-      // ----------------------------------------------------------
-
-      transition.to(
-        panel,
-        {
-          width: "100%",
-
-          backgroundColor: nextProject.theme.background,
-
-          ease: "none",
-
-          duration: 1,
-        },
-        0,
-      );
-
-      // ----------------------------------------------------------
-      // TITLE
-      //
-      // Text transform selesai lebih cepat
-      // daripada panel.
-      // ----------------------------------------------------------
-
-      transition.to(
-        title,
-        {
-          fontSize: heroFontSize,
-          fontWeight: heroFontWeight,
-          fontFamily: heroFontFamily,
-          letterSpacing: heroLetterSpacing,
-
-          ease: "power2.out",
-
-          duration: 0.62,
-        },
-        0,
-      );
-
-      // ----------------------------------------------------------
-      // CATEGORY
-      // ----------------------------------------------------------
-
-      transition.to(
-        category,
-        {
-          color: destinationCategoryColor,
-
-          ease: "power2.out",
-
-          duration: 0.62,
-        },
-        0,
-      );
-
-      // ----------------------------------------------------------
-      // INITIAL COLORS
-      // ----------------------------------------------------------
-
-      const initialProgress = transition.scrollTrigger?.progress ?? 0;
-
-      const initialTitleColor = gsap.utils.interpolate(
-        "#111111",
-        destinationTitleColor,
-        initialProgress,
-      );
-
-      const initialCategoryColor = gsap.utils.interpolate(
-        "rgba(17, 17, 17, 0.4)",
-        destinationCategoryColor,
-        initialProgress,
-      );
-
-      gsap.set(title, {
-        color: initialTitleColor,
-      });
-
-      gsap.set(category, {
-        color: initialCategoryColor,
-      });
-    }, section);
-
-    return () => ctx.revert();
-  }, [nextProject, nextProjectSlug, router]);
+  if (!project || !nextProject) return null;
 
   // ============================================================
   // RENDER
@@ -702,7 +659,7 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
       />
 
       {/* ========================================================
-          DETAIL PROJECT
+          DETAIL PROJECT + NEXT PROJECT (stack)
       ======================================================== */}
 
       <section
@@ -730,17 +687,13 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
         >
           <DetailProject project={project} />
         </div>
+
+        <NextProject
+          ref={nextProjectRef}
+          project={nextProject}
+          slug={nextProjectSlug}
+        />
       </section>
-
-      {/* ========================================================
-          NEXT PROJECT
-      ======================================================== */}
-
-      <NextProject
-        ref={nextProjectRef}
-        project={nextProject}
-        slug={nextProjectSlug}
-      />
     </main>
   );
 }

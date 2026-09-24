@@ -20,12 +20,16 @@ const NextProject = forwardRef<HTMLElement, NextProjectProps>(
         ref={ref}
         data-logo-trigger
         className="
-        relative
+        absolute
+        inset-0
+        z-20
         min-h-screen
         w-full
         overflow-hidden
         bg-[#f2f2f2]
         text-[#111111]
+        max-md:relative
+        max-md:z-auto
       "
       >
         <Link
@@ -116,14 +120,14 @@ const NextProject = forwardRef<HTMLElement, NextProjectProps>(
               tracking-[0.12em]
             "
             >
-              <span>Let's make something</span>
+              <span>Let&apos;s make something</span>
 
               <ArrowUpRight size={18} strokeWidth={1.3} />
             </div>
           </div>
 
           {/* =====================================================
-            NEXT PROJECT PANEL
+            TEXT PANEL
         ===================================================== */}
 
           <div
